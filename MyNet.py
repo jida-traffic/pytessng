@@ -9,13 +9,17 @@ from basic_info.info import roads_info, lanes_info
 
 
 class Section:
-    def __init__(self, road_id, section_id, lane_ids: list=None):
+    def __init__(self, road_id, section_id, lane_ids: list):
         self.road_id = road_id
         self.id = section_id
 
         self._left_link = None
         self._right_link = None
         self.lane_ids = list(lane_ids or [])
+        # 左右来向的车道id分别为正负， 需要根据tess的规则进行排序
+        self.left_lane_ids = sorted(filter(lambda i: i>0, self.lane_ids, ), reverse=True)
+        self.right_lane_ids = sorted(filter(lambda i: i<0, self.lane_ids, ), reverse=False)
+        self.lane_mapping = {}
 
     @property
     def left_link(self):
@@ -23,6 +27,10 @@ class Section:
 
     @left_link.setter
     def left_link(self, obj):
+        index = 0
+        for lane in obj.lanes():
+            self.lane_mapping[self.left_lane_ids[index]] = lane
+            index += 1
         self._left_link = obj
 
     @property
@@ -31,16 +39,24 @@ class Section:
 
     @right_link.setter
     def right_link(self, obj):
+        index = 0
+        for lane in obj.lanes():
+            self.lane_mapping[self.right_lane_ids[index]] = lane
+            index += 1
         self._right_link = obj
 
+    # def set_lanes(self, lane_ids):
+
+
     def tess_lane(self, lane_id):
-        # 此处要求同一路段中的所有车道被建立，否则，可以在tess link中保存原车道id，更加精确
-        if lane_id > 0:
-            tess_lanes = sorted(self.left_link.lanes(), key=lambda i: -i.number())
-            return tess_lanes[lane_id - 1]
-        else:
-            tess_lanes = sorted(self.right_link.lanes(), key=lambda i: -i.number())
-            return tess_lanes[abs(lane_id) - 1]
+        # # 此处要求同一路段中的所有车道被建立，否则，可以在tess link中保存原车道id，更加精确
+        # if lane_id > 0:
+        #     tess_lanes = sorted(self.left_link.lanes(), key=lambda i: -i.number())
+        #     return tess_lanes[lane_id - 1]
+        # else:
+        #     tess_lanes = sorted(self.right_link.lanes(), key=lambda i: -i.number())
+        #     return tess_lanes[abs(lane_id) - 1]
+        return self.lane_mapping[lane_id]
 
     def tess_link(self, lane_id):
         if lane_id > 0:
@@ -165,8 +181,8 @@ class MyNet(PyCustomerNet):
                     # 车道排序，车道id为正，越大的越先在tess中创建，路段序列取反向参考线
                     # land_ids = sorted([lane_id for lane_id in roads_info[road_id]['lanes'].keys() if lane_id > 0],
                     #                   reverse=True)
-                    land_ids = sorted(section_info['left'], reverse=True)
-
+                    # land_ids = sorted(section_info['left'], reverse=True)
+                    land_ids = tess_section.left_lane_ids
                     lCenterLinePoint = get_coo_list(road_info['road_center_vertices'][::-1])
                     lanesWithPoints = [
                         {
@@ -179,6 +195,7 @@ class MyNet(PyCustomerNet):
 
                     tess_section.left_link = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                             f"{road_id}_{section_id}_left")
+                    # tess_section.left_link.lanes()
 
                     # print(tess_section.left_link.id(), road_id)
 
@@ -189,11 +206,6 @@ class MyNet(PyCustomerNet):
                     # land_ids = sorted([lane_id for lane_id in roads_info[road_id]['lanes'].keys() if lane_id < 0], reverse=False)
                     land_ids = sorted(section_info['right'], reverse=False)
                     lCenterLinePoint = get_coo_list(roads_info[road_id]['road_center_vertices'])
-                    try:
-                        for lane_id in land_ids:
-                            print(road_info['sections'][section_id]["lanes"][lane_id])
-                    except:
-                        print(1)
                     lanesWithPoints = [
                         {
                             'left': get_coo_list(road_info['sections'][section_id]["lanes"][lane_id]['left_vertices']),
@@ -368,8 +380,8 @@ class MyNet(PyCustomerNet):
             lanesWithPoints3 = link_info['lanesWithPoints3']
 
             types = set(i['junction'] for i in link_info['infos'])
-            # if link_id == '48-43':
-            #     print(1)
+            if link_id == '22-11':
+                print(1)
             if True in types and False in types:
                 link_type = 'all'
             elif True in types:
