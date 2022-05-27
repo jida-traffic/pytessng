@@ -1,14 +1,16 @@
 import json
+import os
 
+work_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'files')  # 下属必有files文件夹，用来存放xodr和生成的json/csv文件
+file_name = 'test3'
 
-num = 4
-with open(f'basic_info/files/路段{num}.json', 'r') as f:
+with open(os.path.join(work_dir, f"{file_name}-路段.json"), 'r') as f:
     roads_info = json.load(f)
     roads_info = {
         int(k): v for k, v in roads_info.items()
     }
 
-with open(f'basic_info/files/车道{num}.json', 'r') as f:
+with open(os.path.join(work_dir, f"{file_name}-车道.json"), 'r') as f:
     lanes_info = json.load(f)
 
 
@@ -24,3 +26,5 @@ for lane_name, lane_info in lanes_info.items():
     roads_info[road_id]['sections'].setdefault(section_id, {})
     roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
     roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
+
+print(roads_info)
