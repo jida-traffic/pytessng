@@ -272,6 +272,7 @@ class MyNet(PyCustomerNet):
 
 
         # 仅交叉口
+        error_junction = []
         for road_id, road_info in roads_info.items():
             if road_info['junction_id'] == -1:
                 continue
@@ -307,6 +308,17 @@ class MyNet(PyCustomerNet):
                             to_section = road_mapping[to_road_id].section(to_section_id)
                             to_link = to_section.tess_link(to_lane_id)
                             to_lane = to_section.tess_lane(to_lane_id)
+
+                            # TODO 交叉口可能产生自连接，记录并跳过
+                            if from_road_id == to_road_id and from_section_id != to_section_id:
+                                error_junction.append(
+                                    {
+                                        "lane": lane_info['name'],
+                                        "predecessor": predecessor_id,
+                                        "successor": successor_id,
+                                    }
+                                )
+                                continue
                             # if not (from_link.id() == 48 and to_link.id() == 43):
                             #     continue
                             # to_link = link_mapping[to_road_id].tess_link(to_lane_id)
@@ -349,8 +361,6 @@ class MyNet(PyCustomerNet):
             lanesWithPoints3 = link_info['lanesWithPoints3']
 
             types = set(i['junction'] for i in link_info['infos'])
-            if link_id == '22-11':
-                print(1)
             if True in types and False in types:
                 link_type = 'all'
             elif True in types:
@@ -361,6 +371,8 @@ class MyNet(PyCustomerNet):
             netiface.createConnectorWithPoints(from_link_id, to_link_id,
                                                lFromLaneNumber, lToLaneNumber,
                                                lanesWithPoints3, f"{from_link_id}-{to_link_id}-{link_type}")
+
+        print(error_junction)
             # import matplotlib.pyplot as plt
             # x_list, y_list = [i[0] for i in lanesWithPoints3], [i[1] for i in lanesWithPoints3]
             # index = len(x_list) // 2
