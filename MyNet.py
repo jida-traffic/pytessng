@@ -28,7 +28,7 @@ class Section:
     @left_link.setter
     def left_link(self, obj):
         index = 0
-        for lane in obj.lanes():
+        for lane in obj.lanes():  # tess 的车道列表是有序的
             self.lane_mapping[self.left_lane_ids[index]] = lane
             index += 1
         self._left_link = obj
@@ -86,37 +86,6 @@ class Road:
     def section_append(self, section: Section):
         self.sections.append(section)
         self.sections.sort(key=lambda i: i.id)
-
-    # @property
-    # def left_link(self):
-    #     return self._left_link
-    #
-    # @left_link.setter
-    # def left_link(self, obj):
-    #     self._left_link = obj
-    #
-    # @property
-    # def right_link(self):
-    #     return self._right_link
-    #
-    # @right_link.setter
-    # def right_link(self, obj):
-    #     self._right_link = obj
-    #
-    # def tess_lane(self, lane_id):
-    #
-    #     if lane_id > 0:
-    #         tess_lanes = sorted(self.left_link.lanes(), key=lambda i: -i.number())
-    #         return tess_lanes[lane_id - 1]
-    #     else:
-    #         tess_lanes = sorted(self.right_link.lanes(), key=lambda i: -i.number())
-    #         return tess_lanes[abs(lane_id) - 1]
-    #
-    # def tess_link(self, lane_id):
-    #     if lane_id > 0:
-    #         return self.left_link
-    #     else:
-    #         return self.right_link
 
 
 def get_coo_list(vertices, is_link=False):
