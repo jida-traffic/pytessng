@@ -92,9 +92,9 @@ def get_coo_list(vertices, is_link=False):
     list1 = []
     for index in range(0, len(vertices), 1):
         vertice = vertices[index]
-        list1.append(QPointF(m2p(vertice[0] + 1500), m2p(-(vertice[1] + 500))))  # 深圳数据
+        # list1.append(QPointF(m2p(vertice[0] + 1500), m2p(-(vertice[1] + 500))))  # 深圳数据
         # list1.append(QPointF(m2p(vertice[0] - 2000), m2p(-(vertice[1] - 1500))))
-        # list1.append(QPointF(m2p(vertice[0] + 1700), m2p(-(vertice[1] - 2500))))  # 测试数据
+        list1.append(QPointF(m2p(vertice[0] + 1700), m2p(-(vertice[1] - 2500))))  # 测试数据
     return list1
 
 
@@ -136,14 +136,13 @@ class MyNet(PyCustomerNet):
                 tess_section = Section(road_id, section_id, section_info['all'])
                 tess_road.sections.append(tess_section)
 
+                points = road_info['road_points'][str(section_id)]['points']
+
                 # 存在左车道
                 if section_info['left']:
                     # 车道排序，车道id为正，越大的越先在tess中创建，路段序列取反向参考线
-                    # land_ids = sorted([lane_id for lane_id in roads_info[road_id]['lanes'].keys() if lane_id > 0],
-                    #                   reverse=True)
-                    # land_ids = sorted(section_info['left'], reverse=True)
                     land_ids = tess_section.left_lane_ids
-                    lCenterLinePoint = get_coo_list(road_info['road_center_vertices'][::-1])
+                    lCenterLinePoint = get_coo_list([point["position"] for point in points][::-1])
                     lanesWithPoints = [
                         {
                             'left': get_coo_list(road_info['sections'][section_id]["lanes"][lane_id]['left_vertices'],
@@ -162,9 +161,8 @@ class MyNet(PyCustomerNet):
                 # 存在右车道
                 if section_info['right']:
                     # 车道id为负，越小的越先在tess中创建
-                    # land_ids = sorted([lane_id for lane_id in roads_info[road_id]['lanes'].keys() if lane_id < 0], reverse=False)
                     land_ids = sorted(section_info['right'], reverse=False)
-                    lCenterLinePoint = get_coo_list(roads_info[road_id]['road_center_vertices'])
+                    lCenterLinePoint = get_coo_list([point["position"] for point in points])
                     lanesWithPoints = [
                         {
                             'left': get_coo_list(road_info['sections'][section_id]["lanes"][lane_id]['left_vertices']),
@@ -207,9 +205,6 @@ class MyNet(PyCustomerNet):
                     predecessor_id = lane_info['name']
 
                     # 为了和交叉口保持一致，重新获取一次相关信息
-                    # from_road_id = int(predecessor_id.split('.')[0])
-                    # from_section_id = int(predecessor_id.split('.')[1])
-                    # from_lane_id = int(predecessor_id.split('.')[2])
                     is_true, from_road_id, from_section_id, from_lane_id, _ = get_inter(predecessor_id)
 
                     if not is_true:  # 部分车道的连接关系可能是'2.3.None.-1'，需要清除
@@ -220,10 +215,6 @@ class MyNet(PyCustomerNet):
                     from_lane = from_section.tess_lane(from_lane_id)
 
                     for successor_id in lane_info["successor_ids"]:
-                        # to_road_id = int(successor_id.split('.')[0])
-                        # to_section_id = int(successor_id.split('.')[1])
-                        # to_lane_id = int(successor_id.split('.')[2])
-
                         is_true, to_road_id, to_section_id, to_lane_id, _ = get_inter(successor_id)
                         if not is_true:  # 部分车道的连接关系可能是'2.3.None.-1'，需要清除
                             continue
@@ -234,8 +225,6 @@ class MyNet(PyCustomerNet):
                         to_link = to_section.tess_link(to_lane_id)
                         to_lane = to_section.tess_lane(to_lane_id)
 
-                        # if from_lane.number() != 0 and to_lane.number() != 0: #  and from_road_id == 235 and to_road_id == 237:
-                        # print(f"{from_link.id()}-{to_link.id()}", from_lane.number(), to_lane.number())
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'].append(
                             from_lane.number() + 1)
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'].append(
@@ -261,9 +250,6 @@ class MyNet(PyCustomerNet):
                 # 获取路口的所有连接关系
                 for lane_id, lane_info in section_info["lanes"].items():
                     for predecessor_id in lane_info['predecessor_ids']:
-                        # from_road_id = int(predecessor_id.split('.')[0])
-                        # from_section_id = int(predecessor_id.split('.')[1])
-                        # from_lane_id = int(predecessor_id.split('.')[2])
                         is_true, from_road_id, from_section_id, from_lane_id, _ = get_inter(predecessor_id)
                         if not is_true:  # 部分车道的连接关系可能是'2.3.None.-1'，需要清除
                             continue
@@ -271,13 +257,8 @@ class MyNet(PyCustomerNet):
                         from_section = road_mapping[from_road_id].section(from_section_id)
                         from_link = from_section.tess_link(from_lane_id)
                         from_lane = from_section.tess_lane(from_lane_id)
-                        # from_link = link_mapping[from_road_id].tess_link(from_lane_id)
-                        # from_lane = link_mapping[from_road_id].tess_lane(from_lane_id)
 
                         for successor_id in lane_info["successor_ids"]:
-                            # to_road_id = int(successor_id.split('.')[0])
-                            # to_section_id = int(successor_id.split('.')[1])
-                            # to_lane_id = int(successor_id.split('.')[2])
                             is_true, to_road_id, to_section_id, to_lane_id, _ = get_inter(successor_id)
                             if not is_true:  # 部分车道的连接关系可能是'2.3.None.-1'，需要清除
                                 continue
@@ -296,15 +277,7 @@ class MyNet(PyCustomerNet):
                                     }
                                 )
                                 continue
-                            # if not (from_link.id() == 48 and to_link.id() == 43):
-                            #     continue
-                            # to_link = link_mapping[to_road_id].tess_link(to_lane_id)
-                            # to_lane = link_mapping[to_road_id].tess_lane(to_lane_id)
 
-                            # if not (from_road_id == 235 and to_road_id == 237):
-                            #     continue
-
-                            # print(f"{from_link.id()}-{to_link.id()}", from_lane.number(), to_lane.number())
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'].append(
                                 from_lane.number() + 1)
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'].append(
@@ -349,14 +322,9 @@ class MyNet(PyCustomerNet):
                                                lanesWithPoints3, f"{from_link_id}-{to_link_id}-{link_type}")
 
         print(error_junction)
-        # import matplotlib.pyplot as plt
-        # x_list, y_list = [i[0] for i in lanesWithPoints3], [i[1] for i in lanesWithPoints3]
-        # index = len(x_list) // 2
-        # plt.plot(x_list[:index], y_list[:index], color='g', linestyle="", marker=".", linewidth=1)
-        # plt.plot(x_list[index:], y_list[index:], color='r', linestyle="", marker=".", linewidth=1)
 
         # print(connector_mapping)
-        # # 创建连接段，自动计算断点
+        # 创建连接段，自动计算断点
         # #connector2 = netiface.createConnector(link1.id(), link2.id(), lFromLaneNumber, lToLaneNumber)
 
     def afterLoadNet(self):
@@ -365,8 +333,8 @@ class MyNet(PyCustomerNet):
         # 代表TESS NG的路网子接口
         netiface = iface.netInterface()
         # 设置场景大小
-        # netiface.setSceneSize(1000, 1000)  # 测试数据
-        netiface.setSceneSize(4000, 1000)  # 华为路网
+        netiface.setSceneSize(1000, 1000)  # 测试数据
+        # netiface.setSceneSize(4000, 1000)  # 华为路网
         # netiface.setSceneSize(4000, 1000)  # 深圳路网
         # 获取路段数
         count = netiface.linkCount()
