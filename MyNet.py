@@ -1,113 +1,8 @@
 import collections
 
-from PySide2.QtCore import *
-
-from PySide2.QtWidgets import *
-from Tessng import PyCustomerNet, TessInterface, TessPlugin, NetInterface, tngPlugin, tngIFace, m2p
-from Tessng import NetItemType, GraphicsItemPropName
+from Tessng import PyCustomerNet, tngIFace
 from basic_info.info import roads_info, lanes_info
-
-
-class Section:
-    def __init__(self, road_id, section_id, lane_ids: list):
-        self.road_id = road_id
-        self.id = section_id
-
-        self._left_link = None
-        self._right_link = None
-        self.lane_ids = list(lane_ids or [])
-        # 左右来向的车道id分别为正负， 需要根据tess的规则进行排序
-        self.left_lane_ids = sorted(filter(lambda i: i > 0, self.lane_ids, ), reverse=True)
-        self.right_lane_ids = sorted(filter(lambda i: i < 0, self.lane_ids, ), reverse=False)
-        self.lane_mapping = {}
-
-    @property
-    def left_link(self):
-        return self._left_link
-
-    @left_link.setter
-    def left_link(self, obj):
-        index = 0
-        for lane in obj.lanes():  # tess 的车道列表是有序的
-            self.lane_mapping[self.left_lane_ids[index]] = lane
-            index += 1
-        self._left_link = obj
-
-    @property
-    def right_link(self):
-        return self._right_link
-
-    @right_link.setter
-    def right_link(self, obj):
-        index = 0
-        for lane in obj.lanes():
-            self.lane_mapping[self.right_lane_ids[index]] = lane
-            index += 1
-        self._right_link = obj
-
-    # def set_lanes(self, lane_ids):
-
-    def tess_lane(self, lane_id):
-        # # 此处要求同一路段中的所有车道被建立，否则，可以在tess link中保存原车道id，更加精确
-        # if lane_id > 0:
-        #     tess_lanes = sorted(self.left_link.lanes(), key=lambda i: -i.number())
-        #     return tess_lanes[lane_id - 1]
-        # else:
-        #     tess_lanes = sorted(self.right_link.lanes(), key=lambda i: -i.number())
-        #     return tess_lanes[abs(lane_id) - 1]
-        return self.lane_mapping[lane_id]
-
-    def tess_link(self, lane_id):
-        if lane_id > 0:
-            return self.left_link
-        else:
-            return self.right_link
-
-
-class Road:
-    def __init__(self, road_id):
-        self.id = road_id
-        self.sections = []
-        # self._left_link = None
-        # self._right_link = None
-        # section 仅有一个
-        # self.lane_ids = list(lane_ids)
-
-    def section(self, section_id: int = None):
-        if section_id is None:
-            return self.sections
-        else:
-            for section in self.sections:
-                if section.id == section_id:
-                    return section
-            # return self.sections[section_id]
-
-    def section_append(self, section: Section):
-        self.sections.append(section)
-        self.sections.sort(key=lambda i: i.id)
-
-
-def get_coo_list(vertices, is_link=False):
-    # 路段线与车道线的密度保持一致
-    list1 = []
-    for index in range(0, len(vertices), 1):
-        vertice = vertices[index]
-        # list1.append(QPointF(m2p(vertice[0] + 1500), m2p(-(vertice[1] + 500))))  # 深圳数据
-        # list1.append(QPointF(m2p(vertice[0] - 2000), m2p(-(vertice[1] - 1500))))
-        list1.append(QPointF(m2p(vertice[0] + 1700), m2p(-(vertice[1] - 2500))))  # 测试数据
-    return list1
-
-
-def get_inter(string):
-    inter_list = []
-    is_true = True
-    for i in string.split('.'):
-        try:
-            inter_list.append(int(i))
-        except:
-            inter_list.append(None)
-            is_true = False
-    return [is_true, *inter_list]
+from utils import get_coo_list, get_inter, Road, Section
 
 
 # 用户插件子类，代表用户自定义与路网相关的实现逻辑，继承自MyCustomerNet
@@ -157,7 +52,7 @@ class MyNet(PyCustomerNet):
 
                     tess_section.left_link = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                                f"{road_id}_{section_id}_left")
-
+                    # return
                 # 存在右车道
                 if section_info['right']:
                     # 车道id为负，越小的越先在tess中创建
@@ -177,6 +72,7 @@ class MyNet(PyCustomerNet):
                     tess_section.right_link = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                                 f"{road_id}_{section_id}_right")
                 road_mapping[road_id] = tess_road
+
 
         # 创建所有的连接段,交叉口本身不作为车道，直接生成连接段
         # 多条车道属于一个road
@@ -285,8 +181,9 @@ class MyNet(PyCustomerNet):
 
                             # 用前后车道的首尾坐标替换原有首尾坐标
                             connector_vertices = lanes_info[predecessor_id]['center_vertices'][-1:] + \
-                                                 lane_info['center_vertices'][3:-3] + \
+                                                 lane_info['center_vertices'][1:-1] + \
                                                  lanes_info[successor_id]['center_vertices'][:1]
+                            # connector_vertices = lane_info['center_vertices']
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'].append(
                                 get_coo_list(connector_vertices))  # 注意连接线方向
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'].append(
@@ -317,9 +214,12 @@ class MyNet(PyCustomerNet):
             else:
                 link_type = 'link'
 
+            # 源数据建立连接
             netiface.createConnectorWithPoints(from_link_id, to_link_id,
                                                lFromLaneNumber, lToLaneNumber,
                                                lanesWithPoints3, f"{from_link_id}-{to_link_id}-{link_type}")
+            # TESS 自动计算，建立连接
+            # netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber)
 
         print(error_junction)
 
@@ -333,8 +233,8 @@ class MyNet(PyCustomerNet):
         # 代表TESS NG的路网子接口
         netiface = iface.netInterface()
         # 设置场景大小
-        netiface.setSceneSize(1000, 1000)  # 测试数据
-        # netiface.setSceneSize(4000, 1000)  # 华为路网
+        # netiface.setSceneSize(1000, 1000)  # 测试数据
+        netiface.setSceneSize(4000, 1000)  # 华为路网
         # netiface.setSceneSize(4000, 1000)  # 深圳路网
         # 获取路段数
         count = netiface.linkCount()

@@ -1,8 +1,9 @@
+import collections
 import json
 import os
 
 work_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'files')  # 下属必有files文件夹，用来存放xodr和生成的json/csv文件
-file_name = '第II类路网'
+file_name = 'map_hz_kaifangroad'
 
 with open(os.path.join(work_dir, f"{file_name}.json"), 'r') as f:
     data = json.load(f)
@@ -29,4 +30,3 @@ for lane_name, lane_info in lanes_info.items():
     roads_info[road_id]['sections'].setdefault(section_id, {})
     roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
     roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
-

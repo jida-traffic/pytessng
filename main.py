@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import sys
 
-from PySide2.QtCore import *
 from PySide2.QtWidgets import *
 
 from MyPlugin import MyPlugin
