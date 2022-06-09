@@ -13,27 +13,21 @@ def connect_childs(links, connector_mapping):
         to_link_info = links[index+1]
         from_link = from_link_info['link']
         to_link = to_link_info['link']
+
+        connect_lanes = set()
         for lane_id in set(from_link_info['lane_ids'] + to_link_info['lane_ids']):
             # 车道原始编号相等，取原始编号对应的车道，否则，取临近车道(lane_ids 是有序的，所以临近车道永远偏向周边区)
             from_lane_id = min(from_link_info['lane_ids'], key=lambda x: abs(x - lane_id))
             from_lane = from_link_info[from_lane_id]
             to_lane_id = min(to_link_info['lane_ids'], key=lambda x: abs(x - lane_id))
             to_lane = to_link_info[to_lane_id]
+            connect_lanes.add((from_lane.number() + 1, to_lane.number() + 1))
 
-            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'].append(
-                from_lane.number() + 1)
-            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'].append(
-                to_lane.number() + 1)
-            # connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'].append(
-            #     get_coo_list([lane_info['center_vertices'][-1],
-            #                   lanes_info[successor_id]['center_vertices'][0]]))  # 此处采用tess自动连接
-            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'].append(
-                {
-                    # "predecessor_id": predecessor_id,
-                    # "successor_id": successor_id,
-                    'junction': False,
-                }
-            )
+
+        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'] = [i[0] for i in connect_lanes]
+        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'] = [i[1] for i in connect_lanes]
+        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'] = []
+
 
 # 用户插件子类，代表用户自定义与路网相关的实现逻辑，继承自MyCustomerNet
 class MyNet(PyCustomerNet):
@@ -69,6 +63,7 @@ class MyNet(PyCustomerNet):
                 continue  # 先行创建所有的基本路段
             tess_road = Road(road_id)
             for section_id, lane_section_info in road_info['lane_sections'].items():
+
                 points = road_info['road_points'][section_id]['points']
 
                 section_id = int(section_id)
@@ -80,20 +75,18 @@ class MyNet(PyCustomerNet):
                 tess_section = Section(road_id, int(section_id), lane_section_info['all'])
                 tess_road.sections.append(tess_section)
 
-                # if road_id != 3:
-                #     continue
-
                 # 存在左车道
                 if lane_section_info['left']:
                     # 对section分段
                     left_links = []
-                    sectionChild = Child(left_childs)
-                    sectionChild.covert_network()
-                    childs = sectionChild.childs
+                    # sectionChild = Child(left_childs)
+                    # sectionChild.covert_network()
+                    # childs = sectionChild.childs
+                    childs = left_childs
                     for index in range(len(childs)):
                         child = childs[index]
-                        start_index, end_index = [child['index'][0], child['index'][1] + 1]
-                        land_ids = sorted(child["lanes"], reverse=True)
+                        start_index, end_index = child['start'], child['end'] + 1
+                        land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=True)
                         lCenterLinePoint = get_coo_list([point["position"] for point in points][::-1][start_index:end_index])
                         lanesWithPoints = [
                             {
@@ -122,16 +115,17 @@ class MyNet(PyCustomerNet):
                     # return
                 # 存在右车道
                 if lane_section_info['right']:
-                    sectionChild = Child(right_childs)
-                    sectionChild.covert_network()
-                    childs = sectionChild.childs
+                    # sectionChild = Child(right_childs)
+                    # sectionChild.covert_network()
+                    # childs = sectionChild.childs
                     right_links = []
+                    childs = right_childs
                     # 车道id为负，越小的越先在tess中创建
                     # land_ids = sorted(lane_section_info['right'], reverse=False)
                     for index in range(len(childs)):
                         child = childs[index]
-                        start_index, end_index = [child['index'][0], child['index'][1] + 1]
-                        land_ids = sorted(child["lanes"], reverse=False)
+                        start_index, end_index = child['start'], child['end'] + 1
+                        land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=False)
                         lCenterLinePoint = get_coo_list(
                             [point["position"] for point in points][start_index:end_index])
 
@@ -160,7 +154,6 @@ class MyNet(PyCustomerNet):
                     tess_section.right_link = right_links
                     connect_childs(tess_section.right_link, connector_mapping)
                 road_mapping[road_id] = tess_road
-
 
         # 创建路段间的连接
         for road_id, road_info in roads_info.items():
@@ -201,9 +194,6 @@ class MyNet(PyCustomerNet):
                         to_link = to_section.tess_link(to_lane_id, 'to')
                         to_lane = to_section.tess_lane(to_lane_id, 'to')
 
-                        # if to_lane.number() + 1 in [4,6] or from_lane.number() + 1 in [4, 5]:
-                        #     continue
-
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'].append(
                             from_lane.number() + 1)
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'].append(
@@ -222,7 +212,6 @@ class MyNet(PyCustomerNet):
         # 仅交叉口
         error_junction = []
         for road_id, road_info in roads_info.items():
-            # continue
             if road_info['junction_id'] == -1:
                 continue
             for section_id, section_info in road_info['sections'].items():
@@ -320,7 +309,7 @@ class MyNet(PyCustomerNet):
         # 设置场景大小
         # netiface.setSceneSize(1000, 1000)  # 测试数据
         netiface.setSceneSize(4000, 1000)  # 华为路网
-        # netiface.setSceneSize(4000, 1000)  # 深圳路网
+        # netiface.setSceneSize(10000, 3000)  # 深圳路网
         # 获取路段数
         count = netiface.linkCount()
         if (count == 0):

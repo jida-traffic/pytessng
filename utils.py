@@ -60,7 +60,6 @@ class Section:
     # def set_lanes(self, lane_ids):
 
     def tess_lane(self, lane_id, type):
-        print(lane_id, type)
         if lane_id > 0:
             if type == 'from':
                 link_info = self.left_link[-1]
@@ -70,11 +69,7 @@ class Section:
             if type == 'from':
                 link_info = self.right_link[-1]
             else:
-                if self.right_link is None:
-                    print(1)
                 link_info = self.right_link[0]
-        print(link_info, type)
-        print(self.road_id, self.id, lane_id)
         return link_info.get(lane_id)
 
     def tess_link(self, lane_id, type):
@@ -87,8 +82,6 @@ class Section:
             if type == 'from':
                 return self.right_link[-1]['link']
             else:
-                if self.right_link is None:
-                    print(1)
                 return self.right_link[0]['link']
 
 
@@ -117,7 +110,7 @@ def get_coo_list(vertices, is_link=False):
     list1 = []
     for index in range(0, len(vertices), 1):
         vertice = vertices[index]
-        # list1.append(QPointF(m2p(vertice[0] + 1500), m2p(-(vertice[1] + 500))))  # 深圳数据
+        # list1.append(QPointF(m2p(vertice[0] + 2000), m2p(-(vertice[1] + 0))))  # 深圳数据
         list1.append(QPointF(m2p(vertice[0] - 2000), m2p(-(vertice[1] - 1500))))  # 华为路网
         # list1.append(QPointF(m2p(vertice[0] + 1700), m2p(-(vertice[1] - 2500))))  # 测试数据
     return list1
