@@ -2,31 +2,8 @@ import collections
 
 from Tessng import PyCustomerNet, tngIFace
 from basic_info.info import roads_info, lanes_info
-from utils import get_coo_list, get_inter, Road, Section, Child
+from utils import get_coo_list, get_inter, Road, Section, connect_childs
 
-
-# return
-# TODO 为child 间创建链接
-def connect_childs(links, connector_mapping):
-    for index in range(len(links) - 1):
-        from_link_info = links[index]
-        to_link_info = links[index+1]
-        from_link = from_link_info['link']
-        to_link = to_link_info['link']
-
-        connect_lanes = set()
-        for lane_id in set(from_link_info['lane_ids'] + to_link_info['lane_ids']):
-            # 车道原始编号相等，取原始编号对应的车道，否则，取临近车道(lane_ids 是有序的，所以临近车道永远偏向周边区)
-            from_lane_id = min(from_link_info['lane_ids'], key=lambda x: abs(x - lane_id))
-            from_lane = from_link_info[from_lane_id]
-            to_lane_id = min(to_link_info['lane_ids'], key=lambda x: abs(x - lane_id))
-            to_lane = to_link_info[to_lane_id]
-            connect_lanes.add((from_lane.number() + 1, to_lane.number() + 1))
-
-
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'] = [i[0] for i in connect_lanes]
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'] = [i[1] for i in connect_lanes]
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'] = []
 
 
 # 用户插件子类，代表用户自定义与路网相关的实现逻辑，继承自MyCustomerNet
@@ -35,7 +12,7 @@ class MyNet(PyCustomerNet):
         super(MyNet, self).__init__()
 
     # 创建路网
-    def createNet(self):
+    def createNet(self, roads_info, lanes_info):
         # 代表TESS NG的接口
         iface = tngIFace()
         # 代表TESS NG的路网子接口
@@ -294,9 +271,7 @@ class MyNet(PyCustomerNet):
             # TESS 自动计算，建立连接
             else:
                 netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber)
-
         print(error_junction)
-
         # print(connector_mapping)
         # 创建连接段，自动计算断点
         # #connector2 = netiface.createConnector(link1.id(), link2.id(), lFromLaneNumber, lToLaneNumber)
@@ -307,10 +282,10 @@ class MyNet(PyCustomerNet):
         # 代表TESS NG的路网子接口
         netiface = iface.netInterface()
         # 设置场景大小
-        # netiface.setSceneSize(1000, 1000)  # 测试数据
-        netiface.setSceneSize(4000, 1000)  # 华为路网
+        netiface.setSceneSize(1000, 1000)  # 测试数据
+        # netiface.setSceneSize(4000, 1000)  # 华为路网
         # netiface.setSceneSize(10000, 3000)  # 深圳路网
         # 获取路段数
         count = netiface.linkCount()
-        if (count == 0):
-            self.createNet()
+        # if (count == 0):
+        #     self.createNet(roads_info, lanes_info)

@@ -4,7 +4,7 @@ import json
 import os
 
 
-def get_section_points(section_breakpoints, lengths, lane_ids):
+def get_section_points(section_breakpoints, section_info, lengths, lane_ids):
     if section_breakpoints is None:
         section_points = []
         point_lanes = set(lane_ids)
@@ -54,6 +54,7 @@ def get_section_points(section_breakpoints, lengths, lane_ids):
         }
         section_points.append(data)
     return section_points
+
 
 def get_section_breakpoints(lane_ids, section_info, lengths):
     # TODO 路段遍历，获取link段，处理异常点
@@ -108,14 +109,14 @@ def get_section_breakpoints(lane_ids, section_info, lengths):
 
     if section_breakpoints and not (section_breakpoints['split']['lanes'] + section_breakpoints['join']['lanes']):
         section_breakpoints = None
-    section_points = get_section_points(section_breakpoints, lengths, lane_ids)
+    section_points = get_section_points(section_breakpoints, section_info, lengths, lane_ids)
     return section_points
 
 
 # TODO 对于biking driving 不在同一路段的问题，我们可以生成两个json，分别过滤不同的值，多次执行生成路段
 width_limit = {
     'driving': {
-        'split': 3,  # 作为正常的最窄距离
+        'split': 2,  # 作为正常的最窄距离
         'join': 0.1, # 被忽略时的最宽距离
     },
     # 'biking': 1,
@@ -123,7 +124,6 @@ width_limit = {
 point_require = 2  # 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
 if point_require < 2:
     raise 1
-
 
 
 def get_section_childs(lane_ids, section_info, lengths):
@@ -190,7 +190,7 @@ def get_section_childs(lane_ids, section_info, lengths):
 
 
 work_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'files')  # 下属必有files文件夹，用来存放xodr和生成的json/csv文件
-file_name = 'hdmap1.4_foshan_20220111'
+file_name = '第II类路网'
 
 with open(os.path.join(work_dir, f"{file_name}.json"), 'r') as f:
     data = json.load(f)
