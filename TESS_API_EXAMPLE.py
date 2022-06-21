@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import json
 import os
 from pathlib import Path
-import sys
 
 from DockWidget import *
 from Tessng import *
@@ -86,7 +84,8 @@ class TESS_API_EXAMPLE(QMainWindow):
             QMessageBox.warning(None, "提示信息", "请至少选择一种车道类型")
             return
         error_junction = self.network.create_network(tess_lane_types)
-        self.ui.txtMessage.setText(str(error_junction))
+        message = "\n".join([str(i) for i in error_junction])
+        self.ui.txtMessage.setText(message)
 
 
 if __name__ == '__main__':

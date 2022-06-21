@@ -67,7 +67,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.xodrStep = QComboBox(self.centralWidget)
         # self.xodrStep.move(0,0)
         self.xodrStep.setWindowTitle('步长')
-        self.xodrStep.addItems(("0.1", "0.5", "1"))
+        self.xodrStep.addItems(("0.5", "0.1", "1"))
 
         xodr_label2 = QLabel()
         xodr_label2.setText("车道类型")

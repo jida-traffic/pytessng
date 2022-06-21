@@ -1,7 +1,7 @@
 # TODO 对于biking driving 不在同一路段的问题，我们可以生成两个json，分别过滤不同的值，多次执行生成路段
 width_limit = {
-    'driving': {
-        'split': 2,  # 作为正常的最窄距离
+    '机动车道': {
+        'split': 3,  # 作为正常的最窄距离
         'join': 0.1, # 被忽略时的最宽距离
     },
     # 'biking': 1,

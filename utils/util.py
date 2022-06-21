@@ -7,113 +7,6 @@ from utils.config import *
 from opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
 
 
-def get_section_points(section_breakpoints, section_info, lengths, lane_ids):
-    if section_breakpoints is None:
-        section_points = []
-        point_lanes = set(lane_ids)
-        for i in range(0, len(lengths)):
-            data = {
-                "type": 'link',
-                'lane_ids': copy.copy(point_lanes),
-            }
-            section_points.append(data)
-        return section_points
-
-    split_index = section_breakpoints['split']['index'] and [i for i in
-                                                             range(min(section_breakpoints['split']['index']),
-                                                                   max(section_breakpoints['split']['index']) + 1)]
-    join_index = section_breakpoints['join']['index'] and [i for i in range(min(section_breakpoints['join']['index']),
-                                                                            max(section_breakpoints['join'][
-                                                                                    'index']) + 1)]
-    section_points = []
-    point_lanes = set(lane_ids)
-    # 每个section的起止必须为正常link
-    for i in range(0, len(lengths)):
-        # 初始及尾部的车道需要特殊处理成link(根据width处理)
-        if i in [0, 1, len(lengths) - 1, len(lengths) - 2]:
-            point_type = 'link'
-            point_lanes = set(lane_ids)
-            for lane_id in lane_ids:
-                if section_info['lanes'][lane_id]['type'] in width_limit.keys() and \
-                        section_info['lanes'][lane_id]['widths'][i] < \
-                        width_limit[section_info['lanes'][lane_id]['type']]['split']:
-                    point_lanes = set(lane_ids)
-                    point_lanes.remove(lane_id)
-        elif i in split_index:
-            point_type = 'split'
-            for lane in section_breakpoints['split']['lanes']:
-                point_lanes.add(lane)
-
-        elif i in join_index:
-            point_type = 'join'
-            for lane in section_breakpoints['join']['lanes']:
-                if lane in point_lanes:
-                    point_lanes.remove(lane)
-        else:
-            point_type = 'link'
-        data = {
-            "type": point_type,
-            'lane_ids': copy.copy(point_lanes),
-        }
-        section_points.append(data)
-    return section_points
-
-
-def get_section_breakpoints(lane_ids, section_info, lengths):
-    # TODO 路段遍历，获取link段，处理异常点
-    section_breakpoints = {
-        'split': {
-            'lanes': [],
-            'index': [],
-        },
-        'join': {
-            'lanes': [],
-            'index': [],
-        },
-    }
-    # 查找连接段
-    for lane_id in lane_ids:
-        lane_info = section_info['lanes'][lane_id]
-        # 确保车道点序列和参考线序列保持一致
-        if lane_info['type'] in width_limit.keys():
-            lanelet_split, lanelet_split_index = False, None
-            lanelet_join, lanelet_join_index = False, None
-            limit_width = width_limit[lane_info['type']]
-            limit_split = limit_width['split']
-            limit_join = limit_width['join']
-            widths = lane_info['widths']
-
-            # 查找车道的断点
-            connect_index = []
-            for index in range(len(widths)):
-                width = widths[index]
-                if width > limit_join and width < limit_split:
-                    connect_index.append(index)
-
-            if connect_index:
-                if abs(widths[connect_index[0]] - widths[connect_index[-1]]) < 1:
-                    pass  # 无法处理一条车道变宽然后变窄的情况
-                elif widths[connect_index[0]] > widths[connect_index[-1]]:
-                    connect_type = 'join'
-                    section_breakpoints['join']['lanes'].append(lane_id)
-                    section_breakpoints['join']['index'] += connect_index
-
-                else:
-                    connect_type = 'split'
-                    section_breakpoints['split']['lanes'].append(lane_id)
-                    section_breakpoints['split']['index'] += connect_index
-
-    if section_breakpoints['split']['lanes'] and section_breakpoints['join']['lanes'] and \
-            not (max(section_breakpoints['split']['index']) <= min(section_breakpoints['join']['index']) or min(
-                section_breakpoints['split']['index']) >= max(section_breakpoints['join']['index'])):
-        # 异常的特殊情况（重叠），不处理
-        section_breakpoints = None
-
-    if section_breakpoints and not (section_breakpoints['split']['lanes'] + section_breakpoints['join']['lanes']):
-        section_breakpoints = None
-    section_points = get_section_points(section_breakpoints, section_info, lengths, lane_ids)
-    return section_points
-
 
 def get_section_childs(section_info, lengths, direction):
     # 分为左右车道，同时过滤tess规则下不同的车道类型
@@ -133,10 +26,11 @@ def get_section_childs(section_info, lengths, direction):
         }
         for lane_id in lane_ids:
             lane_info = section_info['lanes'][lane_id]
-            if lane_info['type'] not in width_limit.keys() or lane_info['widths'][index] > \
-                    width_limit[lane_info['type']]['split']:
+            tess_lane_type = lane_type_mapping.get(lane_info['type'])
+            if tess_lane_type not in width_limit.keys() or lane_info['widths'][index] > \
+                    width_limit[tess_lane_type]['split']:
                 point_info['lanes'][lane_id] = lane_info['type']  # 无宽度限制或者宽度足够，正常车道
-            elif lane_info['widths'][index] > width_limit[lane_info['type']]['join']:
+            elif lane_info['widths'][index] > width_limit[tess_lane_type]['join']:
                 point_info['lanes'][lane_id] = lane_info['type']  # 宽度介于中间，作为连接段
                 point_info['is_link'] = False
             # 否则，不加入车道列表
@@ -178,11 +72,12 @@ def get_section_childs(section_info, lengths, direction):
         {
             'start': start_index,
             'end': len(lengths) - 1,
-            'point': copy.copy(child_point)
+            'point': copy.copy([child_point[-1] for _ in child_point])
         }
-    )  # 把最后一个存在的点序列导入
+    )  # 把最后一个存在的点序列导入, 最后一个应该以末尾点为准
 
-    # 得到link的列表
+    # lengths 只是断点序列，标记着与起始点的距离,反向用了同样的lengths
+    # 得到link的列表,因为lane的点坐标与方向有关，所以此时的child已经根据方向排序
     return childs
 
 
@@ -190,8 +85,6 @@ class Section:
     def __init__(self, road_id, section_id, lane_ids: list):
         self.road_id = road_id
         self.id = section_id
-        # if road_id == 2 and section_id == 2:
-        #     lane_ids.remove(-5)
 
         self._left_link = None
         self._right_link = None
@@ -207,13 +100,6 @@ class Section:
 
     @left_link.setter
     def left_link(self, obj):
-        # for link_info in obj:
-        #     link = link_info['link']
-        #     lane_ids = link_info['lane_ids']
-        #     index = 0
-        #     for lane in link.lanes():  # tess 的车道列表是有序的
-        #         self.lane_mapping[self.left_lane_ids[index]] = lane
-        #         index += 1
         for link_info in obj:
             link = link_info['link']
             lane_ids = link_info['lane_ids']
@@ -240,8 +126,6 @@ class Section:
                 index += 1
 
         self._right_link = obj
-
-    # def set_lanes(self, lane_ids):
 
     def tess_lane(self, lane_id, type):
         if lane_id > 0:
@@ -336,13 +220,12 @@ class Network:
     def convert_network(self):
         from utils.opendrive_info.main import main
         header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, step_length=self.step_length)
-        # print(self.header_info, self.roads_info, self.lanes_info)
         for road_id, road_info in roads_info.items():
             if road_info['junction_id'] == None:
                 road_info['junction_id'] = -1
             # 记录 坐标点的极值
             for section_id, points in road_info['road_points'].items():
-                for point in points['points']:
+                for point in points['right_points']:
                     position = point['position']
                     if self.xy_limit is None:
                         self.xy_limit = [position[0], position[0], position[1], position[1]]
@@ -367,7 +250,7 @@ class Network:
         self.header_info, self.roads_info, self.lanes_info = header_info, roads_info, lanes_info
         print("convert done")
 
-    def create_network(self, tess_lane_types=['机动车道', '非机动车道']):
+    def create_network(self, tess_lane_types):
         # 代表TESS NG的接口
         iface = tngIFace()
         # 代表TESS NG的路网子接口
@@ -403,15 +286,14 @@ class Network:
                             section_info['tess_lane_ids'].append(lane_id)
 
                     lengths = road_info['road_points'][section_id]['lengths']
-                    section_info['left_points'] = get_section_childs(section_info, lengths, 'left')
-                    section_info['right_points'] = get_section_childs(section_info, lengths, 'right')
+                    section_info['left_childs'] = get_section_childs(section_info, lengths, 'left')
+                    section_info['right_childs'] = get_section_childs(section_info, lengths, 'right')
             road_mapping = self.create_links(netiface, roads_info, connector_mapping)
             self.convert_link_connect(roads_info, lanes_info, connector_mapping, road_mapping, tess_lane_type,
                                       error_junction)
             self.convert_junction(roads_info, lanes_info, connector_mapping, road_mapping, tess_lane_type,
                                   error_junction)
             self.create_connects(netiface, connector_mapping)
-        print(error_junction)
         return error_junction
 
     def create_links(self, netiface, roads_info, connector_mapping):
@@ -422,12 +304,7 @@ class Network:
                 continue  # 先行创建所有的基本路段
             tess_road = Road(road_id)
             for section_id, section_info in road_info['sections'].items():
-
-                points = road_info['road_points'][section_id]['points']
-
-                left_childs = section_info['left_points']
-                right_childs = section_info['right_points']
-
+                # section里的多段link已经根据方向重新排序
                 tess_section = Section(road_id, section_id, section_info['tess_lane_ids'])
                 tess_road.sections.append(tess_section)
 
@@ -438,17 +315,18 @@ class Network:
                     is_exist = max(section_info['tess_lane_ids']) > 0 if direction == 'left' else min(section_info['tess_lane_ids']) < 0
                     if not is_exist:
                         continue
-                    # 右车道id为负，越小的越先在tess中创建，左车道id为正，越大的越先创建
-                    reverse = True if direction == 'left' else False
+                    points = road_info['road_points'][section_id][f'{direction}_points']
                     # 对section分段
                     section_links = []
-                    childs = section_info[f'{direction}_points']  # 记录了所有的路段(断点)
+                    # 记录了所有的路段(断点)
+                    childs = section_info[f'{direction}_childs']
+                    # 右车道id为负，越小的越先在tess中创建，左车道id为正，越大的越先创建
+                    reverse = True if direction == 'left' else False
                     for index in range(len(childs)):
                         child = childs[index]
                         start_index, end_index = child['start'], child['end'] + 1
                         land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=reverse)
-                        lCenterLinePoint = self.get_coo_list(
-                            [point["position"] for point in points][::-1][start_index:end_index])
+                        lCenterLinePoint = self.get_coo_list([point["position"] for point in points][start_index:end_index])
                         lanesWithPoints = [
                             {
                                 'left': self.get_coo_list(
@@ -461,7 +339,7 @@ class Network:
                                     road_info['sections'][section_id]["lanes"][lane_id]['right_vertices'][
                                     start_index:end_index]),
                             }
-                            for lane_id in land_ids  # if roads_info[road_id]['lanes'][lane_id]['type']=='driving'
+                            for lane_id in land_ids
                         ]
                         link_obj = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                      f"{road_id}_{section_id}_{index}_{direction}")
@@ -475,84 +353,7 @@ class Network:
                     tess_section.__setattr__(f"{direction}_link", section_links)
                     # tess_section.left_link = section_links
                     connect_childs(getattr(tess_section, f"{direction}_link"), connector_mapping)
-                #
-                # # 存在左车道
-                # if section_info['tess_lane_ids'] and max(section_info['tess_lane_ids']) > 0:
-                #     # 对section分段
-                #     left_links = []
-                #     childs = left_childs  # 记录了所有的路段(断点)
-                #     for index in range(len(childs)):
-                #         child = childs[index]
-                #         start_index, end_index = child['start'], child['end'] + 1
-                #         land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=True)
-                #         lCenterLinePoint = self.get_coo_list(
-                #             [point["position"] for point in points][::-1][start_index:end_index])
-                #         lanesWithPoints = [
-                #             {
-                #                 'left': self.get_coo_list(
-                #                     road_info['sections'][section_id]["lanes"][lane_id]['left_vertices'][
-                #                     start_index:end_index]),
-                #                 'center': self.get_coo_list(
-                #                     road_info['sections'][section_id]["lanes"][lane_id]['center_vertices'][
-                #                     start_index:end_index]),
-                #                 'right': self.get_coo_list(
-                #                     road_info['sections'][section_id]["lanes"][lane_id]['right_vertices'][
-                #                     start_index:end_index]),
-                #             }
-                #             for lane_id in land_ids  # if roads_info[road_id]['lanes'][lane_id]['type']=='driving'
-                #         ]
-                #         link_obj = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
-                #                                                      f"{road_id}_{section_id}_{index}_left")
-                #         left_links.append(
-                #             {
-                #                 'link': link_obj,
-                #                 'lane_ids': land_ids,
-                #             }
-                #         )
-                #
-                #     tess_section.left_link = left_links
-                #     connect_childs(tess_section.left_link, connector_mapping)
-                #     # return
-                # # 存在右车道
-                # if section_info['tess_lane_ids'] and min(section_info['tess_lane_ids']) < 0:
-                #     right_links = []
-                #     childs = right_childs
-                #     # 车道id为负，越小的越先在tess中创建
-                #     # land_ids = sorted(lane_section_info['right'], reverse=False)
-                #     for index in range(len(childs)):
-                #         child = childs[index]
-                #         start_index, end_index = child['start'], child['end'] + 1
-                #         land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=False)
-                #         lCenterLinePoint = self.get_coo_list(
-                #             [point["position"] for point in points][start_index:end_index])
-                #
-                #         lanesWithPoints = [
-                #             {
-                #                 'left': self.get_coo_list(
-                #                     road_info['sections'][section_id]["lanes"][lane_id]['left_vertices'][
-                #                     start_index:end_index]),
-                #                 'center': self.get_coo_list(
-                #                     road_info['sections'][section_id]["lanes"][lane_id]['center_vertices'][
-                #                     start_index:end_index]),
-                #                 'right': self.get_coo_list(
-                #                     road_info['sections'][section_id]["lanes"][lane_id]['right_vertices'][
-                #                     start_index:end_index]),
-                #             }
-                #             for lane_id in land_ids  # if roads_info[road_id]['lanes'][lane_id]['type']=='driving'
-                #         ]
-                #
-                #         link_obj = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
-                #                                                      f"{road_id}_{section_id}_{index}_right")
-                #         right_links.append(
-                #             {
-                #                 'link': link_obj,
-                #                 'lane_ids': land_ids,
-                #             }
-                #         )
-                #         # right_links.append(netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
-                #         #                                                             f"{road_id}_{section_id}_{index}_right"))
-                #     tess_section.right_link = right_links
-                #     connect_childs(tess_section.right_link, connector_mapping)
+
                 road_mapping[road_id] = tess_road
         return road_mapping
 
@@ -574,13 +375,12 @@ class Network:
                     # 路段类型匹配失败，跳过 TODO 需确保不同类型的车道不会连接
                     if lane_type_mapping.get(lane_info['type']) != tess_lane_type:
                         continue
-                    # 633 路段，L18（-） 只有两个后续车道连接？？？ 已确认，yes
                     predecessor_id = lane_info['name']
 
                     # 为了和交叉口保持一致，重新获取一次相关信息
                     is_true, from_road_id, from_section_id, from_lane_id, _ = get_inter(predecessor_id)
-
-                    if not is_true:  # 部分车道的连接关系可能是'2.3.None.-1', 需要清除（上一车道宽度归零，不会连接到下一车道）
+                    # 部分车道的连接关系可能是'2.3.None.-1', 需要清除（上一车道宽度归零，不会连接到下一车道）
+                    if not is_true:
                         continue
 
                     from_section = road_mapping[from_road_id].section(from_section_id)
@@ -604,11 +404,13 @@ class Network:
                         if from_lane.actionType() != to_lane.actionType():
                             error_junction.append(
                                 {
-                                    "link": f"{from_link.id()}-{to_link.id()}",
-                                    "from": from_lane.number() + 1,
-                                    "to": to_lane.number() + 1,
-                                    "info": f"{from_lane.actionType()}-{to_lane.actionType()}"
-
+                                    "from_link_id": from_link.id(),
+                                    "from_lane_number": from_lane.number() + 1,
+                                    "from_lane_type": from_lane.actionType(),
+                                    "to_link_id": to_link.id(),
+                                    "to_lane_number": to_lane.number() + 1,
+                                    "to_lane_type": from_lane.actionType(),
+                                    "message": "连接段前后车道类型不同",
                                 }
                             )
                             continue
@@ -659,22 +461,28 @@ class Network:
                             if from_lane.actionType() != to_lane.actionType():
                                 error_junction.append(
                                     {
-                                        "link": f"{from_link.id()}-{to_link.id()}",
-                                        "from": from_lane.number() + 1,
-                                        "to": to_lane.number() + 1,
-                                        "info": f"{from_lane.actionType()}-{to_lane.actionType()}"
+                                        "from_link_id": from_link.id(),
+                                        "from_lane_number": from_lane.number() + 1,
+                                        "from_lane_type": from_lane.actionType(),
+                                        "to_link_id": to_link.id(),
+                                        "to_lane_number": to_lane.number() + 1,
+                                        "to_lane_type": from_lane.actionType(),
+                                        "message": "连接段前后车道类型不同",
                                     }
                                 )
                                 continue
 
-                            # TODO 交叉口可能产生自连接，记录并跳过
+                            # TODO 交叉口可能产生自连接，记录并跳过（连接发生在同一路段时，必须保证是同一个section）
                             if from_road_id == to_road_id and from_section_id != to_section_id:
                                 error_junction.append(
                                     {
-                                        "lane": lane_info['name'],
-                                        "predecessor": predecessor_id,
-                                        "successor": successor_id,
-                                        'tess_lane_type': tess_lane_type,
+                                        "from_link_id": from_link.id(),
+                                        "from_lane_number": from_lane.number() + 1,
+                                        "from_lane_type": from_lane.actionType(),
+                                        "to_link_id": to_link.id(),
+                                        "to_lane_number": to_lane.number() + 1,
+                                        "to_lane_type": from_lane.actionType(),
+                                        "message": "车道连接信息错误",
                                     }
                                 )
                                 continue

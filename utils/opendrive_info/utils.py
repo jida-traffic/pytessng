@@ -34,12 +34,14 @@ def calc_elevation(pos, elevations):
     high = a + b * ds + c * ds ** 2 + d * ds ** 3
     return high
 
+
 def calc_width(l1, l2):
     width_list = []
     for index in range(len(l1)):
         width = sqrt((l1[index][0] - l2[index][0]) ** 2 + (l1[index][1] - l2[index][1]) ** 2)
         width_list.append(width)
     return width_list
+
 
 def convert_roads_info(opendrive, filter_types, step_length=0.5):  # step_length需要对第三方包进行修改
     roads_info = {}
@@ -49,7 +51,8 @@ def convert_roads_info(opendrive, filter_types, step_length=0.5):  # step_length
         road_points = {}
         # 为了适配tess，将road按照section切分为多个link
         for section in road.lanes.lane_sections:
-            points = []
+            right_points = []
+            left_points = []
             section_id = section.idx
             section_length = section.length
             section_sPos = section.sPos
@@ -60,17 +63,30 @@ def convert_roads_info(opendrive, filter_types, step_length=0.5):  # step_length
             # lengths = list(road_section_distance[road.id][section_id].values())[0] # 尽量拟合路段与车道
             # 计算每一点的坐标和角度
             for length in lengths:
+                right_length = length
+                left_length = road_length - length
                 if length > road_length:
-                    length = road_length
-                position, angle = planView.calc_geometry(length)
-                points.append(
+                    right_length = road_length
+                    left_length = 0
+                right_position, right_angle = planView.calc_geometry(right_length)
+                left_position, left_angle = planView.calc_geometry(left_length)
+                right_points.append(
                     {
-                        "position": list(position),
-                        'angle': angle,
+                        "position": list(right_position),
+                        'angle': right_angle,
                     }
                 )
+                left_points.append(
+                    {
+                        "position": list(left_position),
+                        'angle': left_angle,
+                    }
+                )
+
+            # 左右方向参考线点计算不一样
             road_points[section_id] = {
-                "points": points,
+                "right_points": right_points,
+                "left_points": left_points,
                 'sPos': section_sPos,
                 'ePos': section_ePos,
                 'length': section_length,
@@ -121,17 +137,6 @@ def convert_lanes_info(opendrive, scenario):
         road_id = int(ids[0])
         section_id = int(ids[1])
         lane_id = int(ids[2])
-        # if section_id not in road_section_distance[road_id].keys():
-        #     road_section_distance[road_id][section_id] = {}
-        # road_section_distance[road_id][section_id][lane_id] = lane.distance
-        # count = len(lane.center_vertices) - roads_info[road_id]['road_points'][section_id]['steps']
-        # if count:
-        #     print(len(lane.center_vertices), count)
-        #     for i in range(count):
-        #         lane.center_vertices = np.delete(lane.center_vertices, len(lane.center_vertices) // 2, 0)
-        #         lane.left_vertices = np.delete(lane.left_vertices, len(lane.left_vertices) // 2, 0)
-        #         lane.right_vertices = np.delete(lane.right_vertices, len(lane.right_vertices) // 2, 0)
-        #     print(len(lane.center_vertices))
 
         # 计算车道宽度
         center_vertices, left_vertices, right_vertices = lane.center_vertices.tolist(), lane.left_vertices.tolist(), lane.right_vertices.tolist()
@@ -221,85 +226,3 @@ def convert_section_info(sections, filter_types):
         sections_mapping[section_id]['all'] = sections_mapping[section_id]['right'] + sections_mapping[section_id]['left'] + sections_mapping[section_id]['center']
     # 缺少限制数据
     return sections_mapping
-
-
-
-def write_lanes(work_dir, file_name, scenario, lanes_info, road_junction):
-    with open(os.path.join(work_dir, f'{file_name}-车道.json'), 'w') as f:
-        json.dump(lanes_info, f)
-
-    f1 = open(os.path.join(work_dir, f"{file_name}-车道.csv"), 'w', newline='')
-    f2 = open(os.path.join(work_dir, f"{file_name}-车道连接.csv"), 'w', newline='')
-
-    # 写入文件
-    writer1 = csv.writer(f1)
-    writer1.writerow(["路段ID", "路段名称", "车道ID", "宽度(m)", "中心点序列", "左侧折点序列", "右侧折点序列"])
-
-    writer2 = csv.writer(f2)
-    writer2.writerow(["连接段ID", "起始路段ID", "起始车道ID", "目标路段ID", "目标车道ID", "中心点序列", "左侧折点序列", "右侧折点序列"])
-    for lane in scenario.lanelet_network.lanelets:
-        x_list = []
-        y_list = []
-        # 获取所在路段
-        road_id = lanes_info[lane.lanelet_id]['road_id']
-        lane_name = lanes_info[lane.lanelet_id]['name']
-
-        for coo in lane.center_vertices:
-            # 绘制中心线
-            x_list.append(coo[0])
-            y_list.append(coo[1])
-
-        center_string = ' '.join(["({} {}) ".format(coo[0], coo[1]) for coo in lane.center_vertices])
-        left_string = ' '.join(["({} {}) ".format(coo[0], coo[1]) for coo in lane.left_vertices])
-        right_string = ' '.join(["({} {}) ".format(coo[0], coo[1]) for coo in lane.right_vertices])
-        predecessor_ids = lane.predecessor
-        successor_ids = lane.successor
-        if road_junction.get(road_id) is None:  # 区分此路段是否属于 junction, 同时 正常车道也有前后
-            writer1.writerow([road_id, lane_name, lane.lanelet_id, '', center_string, left_string, right_string])
-        else:
-            for successor_id in successor_ids:
-                for predecessor_id in predecessor_ids:
-                    # 有可能车道的前置或者后续路段并不在此文件中，这种情况我们不记录<lanes_info[_id] 为{}， road_id 取''>
-                    writer2.writerow(
-                        [road_id, lanes_info[successor_id].get('road_id', ''), successor_id,
-                         lanes_info[predecessor_id].get('road_id', ''), predecessor_id,
-                         center_string, left_string, right_string])
-        index = len(x_list) // 2
-        plt.plot(x_list[:index], y_list[:index], color='g', linestyle="", marker=".", linewidth=1)
-        plt.plot(x_list[index:], y_list[index:], color='r', linestyle="", marker=".", linewidth=1)
-
-    f1.close()
-    f2.close()
-    plt.show()
-
-
-
-def write_roads(work_dir, file_name, roads_info):
-    with open(os.path.join(work_dir, f"{file_name}-路段.json"), 'w') as f:
-        json.dump(roads_info, f)
-
-    f1 = open(os.path.join(work_dir, f"{file_name}-路段.csv"), 'w', newline='')
-    f2 = open(os.path.join(work_dir, f"{file_name}-连接段.csv"), 'w', newline='')
-
-    writer1 = csv.writer(f1)
-    writer1.writerow(["路段ID", "路段名称", "長度(m)", "中心点序列", "左侧折点序列", "右侧折点序列"])
-
-    writer2 = csv.writer(f2)
-    writer2.writerow(["连接段ID", "長度(m)", "中心点序列", "左侧折点序列", "右侧折点序列"])
-    sum_xy = []
-    for road_id, road_data in roads_info.items():
-        junction_id = road_data['junction_id']
-        for section_id, section_info in road_data["road_points"].items():
-            center_string = [point['position'] for point in section_info["points"]]
-            if junction_id is None:  # 非路口
-                writer1.writerow([road_id, '', road_data['length'], center_string, '', ''])
-                color = 'r'
-                plt.plot([i[0] for i in center_string], [i[1] for i in center_string], color=color, linestyle="", marker=".")
-            else:
-                writer2.writerow([road_id, road_data['length'], center_string, '', ''])
-                color = 'g'
-                plt.plot([i[0] for i in center_string], [i[1] for i in center_string], color=color, linestyle="", marker=".")
-    plt.show()
-    f1.close()
-    f2.close()
-    return sum_xy
