@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-
+import json
 import os
 from pathlib import Path
 import sys
 
 from DockWidget import *
 from Tessng import *
-from utils import Network
+from utils.util import Network
 
 
 class TESS_API_EXAMPLE(QMainWindow):
@@ -41,12 +41,8 @@ class TESS_API_EXAMPLE(QMainWindow):
         if netFilePath:
             if netFilePath.endswith('xodr'):
                 self.xodr = netFilePath
-                self.network = Network(netFilePath)
-                # 代表TESS NG的接口
-                # iface = tngIFace()
-                # 代表TESS NG的路网子接口
-                # netiface = iface.netInterface()
-                # from utils import get_coo_list
+                step = float(self.ui.xodrStep.currentText())
+                self.network = Network(netFilePath, step_length=step)
             else:
                 iface.netInterface().openNetFle(netFilePath)
 
@@ -76,29 +72,21 @@ class TESS_API_EXAMPLE(QMainWindow):
         self.ui.txtMessage.clear()
         self.ui.txtMessage.setText(runInfo)
 
-    def showXodr(self, ewwe):
-        if not self.xodr:
+    def showXodr(self, info):
+        if not self.network:
+            QMessageBox.warning(None, "提示信息", "请先导入xodr路网文件")
             return
         # 代表TESS NG的接口
-        self.network.create_network()
-        # 代表TESS NG的路网子接口
-        # netiface = iface.netInterface()
-        # from utils import get_coo_list
-        # link_point = [(i, 0) for i in range(100)]
-        # lane_points = {
-        #     'right': [(i, 0) for i in range(100)],
-        #     'center': [(i, 1) for i in range(100)],
-        #     'left': [(i, 2) for i in range(100)],
-        # }
-        # lCenterLinePoint = get_coo_list(link_point)
-        # lanesWithPoints = [
-        #     {
-        #         'left': get_coo_list(lane['left']),
-        #         'center': get_coo_list(lane['center']),
-        #         'right': get_coo_list(lane['right']),
-        #     } for lane in [lane_points]
-        # ]
-        # netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints, f"_right")
+        step = float(self.ui.xodrStep.currentText())
+        tess_lane_types = []
+        for xodrCk in self.ui.xodrCks:
+            if xodrCk.checkState() == QtCore.Qt.CheckState.Checked:
+                tess_lane_types.append(xodrCk.text())
+        if not tess_lane_types:
+            QMessageBox.warning(None, "提示信息", "请至少选择一种车道类型")
+            return
+        error_junction = self.network.create_network(tess_lane_types)
+        self.ui.txtMessage.setText(str(error_junction))
 
 
 if __name__ == '__main__':

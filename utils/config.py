@@ -7,6 +7,7 @@ width_limit = {
     # 'biking': 1,
 }
 
+# 不在此映射表中的车道不予显示
 lane_type_mapping = {
     'driving': '机动车道',
     'parking': '机动车道',
