@@ -12,6 +12,7 @@ class MyPlugin(TessPlugin):
         super(MyPlugin, self).__init__()
         self.mNetInf = None
         self.mSimuInf = None
+        self.dockWidget = None
 
     def initGui(self):
         # 在TESS NG主界面上增加 QDockWidget对象
@@ -20,11 +21,12 @@ class MyPlugin(TessPlugin):
         iface = tngIFace()
         win = iface.guiInterface().mainWindow()
 
-        dockWidget = QDockWidget("自定义与TESS NG交互界面", win)
+        dockWidget = QDockWidget("opendrive文件导入", win)
         dockWidget.setObjectName("mainDockWidget")
         dockWidget.setFeatures(QDockWidget.NoDockWidgetFeatures)
         dockWidget.setAllowedAreas(Qt.LeftDockWidgetArea)
         dockWidget.setWidget(self.examleWindow.centralWidget())
+        self.dockWidget = dockWidget
         iface.guiInterface().addDockWidgetToMainWindow(Qt.DockWidgetArea(1), dockWidget)
 
     # 过载父类方法，在 TESS NG工厂类创建TESS NG对象时调用

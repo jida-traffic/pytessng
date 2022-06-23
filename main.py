@@ -8,6 +8,8 @@ from PySide2.QtWidgets import *
 
 from MyPlugin import MyPlugin
 from Tessng import *
+from utils.config import MyProcess
+import sys
 
 
 if __name__ == '__main__':
@@ -20,6 +22,9 @@ if __name__ == '__main__':
     plugin = MyPlugin()
     factory = TessngFactory()
     tessng = factory.build(plugin, config)
+
+    my_process = MyProcess()
+    sys.modules["__main__"].__dict__['myprocess'] = my_process
 
     if tessng is None:
         sys.exit(0)

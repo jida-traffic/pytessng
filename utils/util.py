@@ -1,11 +1,11 @@
 import collections
 import copy
 
+from PySide2.QtWidgets import QApplication
 from PySide2.QtCore import QPointF
 from Tessng import m2p, tngIFace
 from utils.config import *
 from opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
-
 
 
 def get_section_childs(section_info, lengths, direction):
@@ -207,19 +207,24 @@ def connect_childs(links, connector_mapping):
 
 
 class Network:
-    def __init__(self, filepath, filter_types=None, step_length=None):
+    def __init__(self, filepath, filter_types=None, step_length=None, window=None):
+        self.window = window
         self.filepath = filepath
         self.step_length = step_length or 0.5
         # 定义静态文件及所处位置文件夹
-        # file_name = '第I类路网'
         # filter_types = ["driving", "onRamp", "offRamp", "exit", "entry"]  # 一般用于机动车行驶的车道
         self.filter_types = filter_types or Lane.laneTypes
         self.xy_limit = None  # x1,x2,y1,y2
+        self.network_info = None
+        self.app = QApplication
         self.convert_network()
 
     def convert_network(self):
         from utils.opendrive_info.main import main
-        header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, step_length=self.step_length)
+        header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, self.step_length, self.window, self.app)
+
+        self.window.pd_progress = 0
+        progess = 0
         for road_id, road_info in roads_info.items():
             if road_info['junction_id'] == None:
                 road_info['junction_id'] = -1
@@ -234,7 +239,11 @@ class Network:
                         self.xy_limit[1] = max(self.xy_limit[1], position[0])
                         self.xy_limit[2] = min(self.xy_limit[2], position[1])
                         self.xy_limit[3] = max(self.xy_limit[3], position[1])
+            progess += 1
+            self.window.pd_progress = progess / len(roads_info) * 20 + 60
+            self.app.processEvents()
 
+        progess = 0
         for lane_name, lane_info in lanes_info.items():
             if not lane_info:  # 此车道只是文件中某车道的前置或者后置车道，仅仅被提及，是空信息，跳过
                 continue
@@ -247,7 +256,15 @@ class Network:
             roads_info[road_id]['sections'].setdefault(section_id, {})
             roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
             roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
-        self.header_info, self.roads_info, self.lanes_info = header_info, roads_info, lanes_info
+            progess += 1
+            self.window.pd_progress = progess / len(lanes_info) * 20 + 80
+            self.app.processEvents()
+
+        self.network_info = {
+            "header_info": header_info,
+            "roads_info": roads_info,
+            "lanes_info": lanes_info,
+        }
         print("convert done")
 
     def create_network(self, tess_lane_types):
@@ -266,8 +283,8 @@ class Network:
         # 不同类型的车道建立不同的路段
         for tess_lane_type in tess_lane_types:
             # 会改变数据结构，所以创建新的数据备份
-            roads_info = copy.deepcopy(self.roads_info)
-            lanes_info = copy.deepcopy(self.lanes_info)
+            roads_info = copy.deepcopy(self.network_info["roads_info"])
+            lanes_info = copy.deepcopy(self.network_info["lanes_info"])
 
             def default_dict():
                 return {
