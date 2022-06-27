@@ -1,6 +1,37 @@
 road_network.export_commonroad_scenario(filter_types=filter_types, roads_info=roads_info)
 
 
+def export_commonroad_scenario(
+        self, dt: float = 0.1, benchmark_id=None, filter_types=None, roads_info=None, my_signal=None, pb=None
+):
+    """Export a full CommonRoad scenario
+
+    Args:
+      dt:  (Default value = 0.1)
+      benchmark_id:  (Default value = None)
+      filter_types:  (Default value = None)
+
+    Returns:
+
+    """
+
+    scenario = Scenario(
+        dt=dt, benchmark_id=benchmark_id if benchmark_id is not None else "none"
+    )
+
+    scenario.add_objects(
+        self.export_lanelet_network(
+            filter_types=filter_types
+            if isinstance(filter_types, list)
+            else ["driving", "onRamp", "offRamp", "exit", "entry"],
+            roads_info=roads_info,
+            my_signal=my_signal,
+            pb=pb
+        )
+    )
+
+    return scenario
+
 class Lane:
     """ """
 
@@ -28,8 +59,9 @@ class Lane:
         "onRamp",
     ]
 
+
 def export_lanelet_network(
-        self, filter_types: list = None, roads_info=None
+        self, filter_types: list = None, roads_info=None, my_signal=None, pb=None
 ) -> "ConversionLaneletNetwork":
     """Export network as lanelet network.
 
@@ -42,7 +74,7 @@ def export_lanelet_network(
 
     # Convert groups to lanelets
     lanelet_network = ConversionLaneletNetwork()
-
+    progress = 0
     for parametric_lane in self._planes:
         if filter_types is not None and parametric_lane.type not in filter_types:
             continue
@@ -64,6 +96,8 @@ def export_lanelet_network(
         lanelet.successor = self._link_index.get_successors(parametric_lane.id_)
 
         lanelet_network.add_lanelet(lanelet)
+        progress += 1
+        my_signal.emit(pb, int(progress / len(self._planes) * 80), {})
 
     # prune because some
     # successorIds get encoded with a non existing successorID
@@ -79,7 +113,6 @@ def export_lanelet_network(
     # lanelet_network.convert_all_lanelet_ids()
 
     return lanelet_network
-
 
 def to_lanelet(self, precision: float = 0.5, poses=None) -> ConversionLanelet:
     """Convert a ParametricLaneGroup to a Lanelet.

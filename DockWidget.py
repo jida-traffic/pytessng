@@ -36,22 +36,10 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1.setText("步长选择(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
         self.xodrStep.addItems(("0.5", "0.1", "1"))
-        #     # 导入进度条
-        # self.pd = QProgressBar(self.centralWidget)
-        # # pd.setLabelText('导入进度')
-        # self.pd.setRange(0, 100)  # 进度对话框的范围设定
-        # self.pd.setValue(0)
-        # # pd.move(pd.x(), pd.y() + 200)
-        # # self.pd.show()
-        # self.pd_progress = 0
-        #
-        # def progress_chg():
-        #     self.pd.setValue(self.pd_progress)
-        #     # self.pd.show()
-        #
-        # timer = QTimer(self.pd)
-        # timer.timeout.connect(progress_chg)
-        # timer.start(100)
+        # 文件导入进度条
+        self.pb = QProgressBar(self.centralWidget)
+        self.pb.setRange(0, 100)  # 进度对话框的范围设定
+        self.pb.setTextVisible(False)
 
         self.btnOpenNet = QPushButton(self.centralWidget)
         self.btnOpenNet.setObjectName(u"btnOpenNet")
@@ -59,6 +47,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         # self.verticalLayout_0.addWidget(self.pd)
         self.verticalLayout_0.addWidget(xodr_label1)
         self.verticalLayout_0.addWidget(self.xodrStep)
+        self.verticalLayout_0.addWidget(self.pb)
         self.verticalLayout_0.addWidget(self.btnOpenNet)
 
         # 信息窗
@@ -71,13 +60,19 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout_2.setContentsMargins(1, -1, 1, -1)
 
+        self.text_label_1 = QLabel()
+        self.text_label_1.setText("路网详情")
         self.txtMessage1 = QTextBrowser(self.groupBox_3)
         self.txtMessage1.setObjectName(u"txtMessage")
 
+        self.text_label_2 = QLabel()
+        self.text_label_2.setText("错误信息")
         self.txtMessage2 = QTextBrowser(self.groupBox_3)
         self.txtMessage2.setObjectName(u"txtMessage")
 
+        self.verticalLayout_2.addWidget(self.text_label_1)
         self.verticalLayout_2.addWidget(self.txtMessage1)
+        self.verticalLayout_2.addWidget(self.text_label_2)
         self.verticalLayout_2.addWidget(self.txtMessage2)
 
         # xodr 创建选择页
@@ -95,10 +90,14 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnShowXodr = QPushButton(self.centralWidget)
         self.btnShowXodr.setObjectName(u"btnShowXodr")
 
+        xodr_label3 = QLabel()
+        xodr_label3.setText(f"车道转换说明:\n机动车道:\n{'~0.2m:'.ljust(10)} 车道忽略\n{'0.2m~3m:'.ljust(10)} 视为连接段\n{'3m~:'.ljust(10)} 正常车道\n")
+
         self.verticalLayout_4.addWidget(xodr_label2)
         self.verticalLayout_4.addWidget(self.xodrCk1)
         self.verticalLayout_4.addWidget(self.xodrCk2)
         self.verticalLayout_4.addWidget(self.btnShowXodr)
+        self.verticalLayout_4.addWidget(xodr_label3)
 
         # 添加控件到布局
         self.verticalLayout.addWidget(self.groupBox_1)
@@ -106,7 +105,11 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout.addWidget(self.groupBox_3)
 
         self.groupBox_3.setVisible(True)  # 信息窗
+        self.pb.setVisible(False)  # 信息窗
         self.groupBox_2.setVisible(False)  # 创建选择框
+        self.text_label_1.setVisible(False)
+        self.text_label_2.setVisible(False)
+        self.txtMessage1.setVisible(True) # error 信息栏
         self.txtMessage2.setVisible(False) # error 信息栏
         # xodr 控件结束
 
@@ -138,5 +141,17 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.groupBox_3.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u4fe1\u606f\u7a97", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u521b\u5efaTESS NG", None))
         self.btnShowXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u786e\u8ba4", None))
-        # self.xodr_step.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u786e", None))
-    # retranslateUi
+
+
+    def change_progress(self, pb, value, network_info=None):
+        pb.setValue(value)
+        if not network_info:
+            self.pb.setVisible(True)
+        else:
+            self.pb.setVisible(False)
+            # 导入完成后，部分窗体展示
+            self.text_label_1.setVisible(True)
+            print(network_info)
+            self.txtMessage1.setText(f"{str(network_info)}")
+            self.groupBox_2.setVisible(True)
+            self.btnOpenNet.setEnabled(True)

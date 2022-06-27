@@ -7,7 +7,14 @@ from PySide2.QtWidgets import QFileDialog, QMessageBox
 from utils.network_utils import Network
 from PySide2.QtWidgets import *
 from Tessng import *
+from threading import Thread
 
+
+class MySignals(QObject):
+    # 定义一种信号，因为有文本框和进度条两个类，此处要四个参数，类型分别是： QPlainTextEdit 、 QProgressBar、字符串和整形数字
+    # 调用 emit方法发信号时，传入参数必须是这里指定的参数类型
+    # 此处也可分开写两个函数，一个是文本框输出的，一个是给进度条赋值的
+    text_print = Signal(QProgressBar, int, dict)
 
 class TESS_API_EXAMPLE(QMainWindow):
     def __init__(self, parent=None):
@@ -61,25 +68,34 @@ class TESS_API_EXAMPLE(QMainWindow):
         netFilePath, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, xodrSuffix)
         print(netFilePath)
         if netFilePath:
-            # if netFilePath.endswith('xodr'):
             self.xodr = netFilePath
+            # 限制文件的再次选择
+            self.ui.btnOpenNet.setEnabled(False)
+            # 声明线程间的共享变量
+            global pb
+            global my_signal
+            my_signal = MySignals()
+            pb = self.ui.pb
+
             step = float(self.ui.xodrStep.currentText())
+            self.network = Network(netFilePath, step_length=step, window=self.ui)
 
             # TODO 添加进度条--主窗口
-            self.network = Network(netFilePath, step_length=step, window=self.ui)
-            # 导入完成后，部分窗体展示
-            self.ui.txtMessage1.setText(f"路网详情\n{str(self.network.network_info)}")
-            self.ui.groupBox_2.setVisible(True)
-            # else:
-            #     iface.netInterface().openNetFle(netFilePath)
+            # 主线程连接信号
+            my_signal.text_print.connect(self.ui.change_progress)
+            # 启动子线程
+            thread = Thread(target=self.network.convert_network, args=(my_signal.text_print, pb))
+            thread.start()
+
         # TODO 插件的展示与隐藏
         # tngPlugin().dockWidget.setVisible(False)
 
 
     def showXodr(self, info):
-        if not self.network:
-            QMessageBox.warning(None, "提示信息", "请先导入xodr路网文件")
+        if not (self.network and self.network.network_info):
+            QMessageBox.warning(None, "提示信息", "请先导入xodr路网文件或等待文件转换完成")
             return
+
         # 代表TESS NG的接口
         step = float(self.ui.xodrStep.currentText())
         tess_lane_types = []
@@ -91,8 +107,9 @@ class TESS_API_EXAMPLE(QMainWindow):
             return
         error_junction = self.network.create_network(tess_lane_types)
         message = "\n".join([str(i) for i in error_junction])
-        self.ui.txtMessage2.setText(f"异常路段\n{message}")
+        self.ui.txtMessage2.setText(f"{message}")
         if error_junction:
+            self.ui.text_label_2.setVisible(True)
             self.ui.txtMessage2.setVisible(True)
         QMessageBox.warning(None, "仿真提醒", "如需仿真, 请保存为tess文件后重新打开")
 

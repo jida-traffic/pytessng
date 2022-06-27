@@ -1,19 +1,11 @@
+import json
 from multiprocessing import Process
 from multiprocessing import Queue
-from multiprocessing import Process
-from multiprocessing import Queue
-
-
 # TODO 对于biking driving 不在同一路段的问题，我们可以生成两个json，分别过滤不同的值，多次执行生成路段
-width_limit = {
-    '机动车道': {
-        'split': 3,  # 作为正常的最窄距离
-        'join': 0.1, # 被忽略时的最宽距离
-    },
-    # 'biking': 1,
-}
+from kafka import KafkaProducer
 
-# 不在此映射表中的车道不予显示
+
+# opendrive —> tess 车道, 不在此映射表中的车道不予显示
 lane_type_mapping = {
     'driving': '机动车道',
     'parking': '机动车道',
@@ -22,19 +14,22 @@ lane_type_mapping = {
     'biking': '非机动车道',
 }
 
-point_require = 2  # 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
-if point_require < 2:
-    raise 1
+# 需要被处理的车道类型及处理参数
+width_limit = {
+    '机动车道': {
+        'split': 3,  # 作为正常的最窄距离
+        'join': 0.2,  # 被忽略时的最宽距离
+    },
+    # 'biking': 1,
+}
 
+# 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
+point_require = 2
+point_require = max(2, point_require)
 
 KAFKA_HOST = 'tengxunyun'
 KAFKA_PORT = 9092
 topic = 'tess'
-# import redis
-# REDIS_HOST = 'tengxunyun'
-# REDIS_PORT = 6379
-# pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True, db=4)   # 前端传入的数据放在db=2
-# redis_client = redis.Redis(connection_pool=pool)
 
 
 def get_vehi_info(simuiface):
@@ -48,7 +43,7 @@ def get_vehi_info(simuiface):
     }
     lAllVehi = simuiface.allVehiStarted()
     lAllVehi_mapping = {
-      i.id(): i
+        i.id(): i
         for i in lAllVehi
     }
     # import pdb;pdb.set_trace()
@@ -77,7 +72,7 @@ def get_vehi_info(simuiface):
             {
                 'id': get_attr(vehi, 'id'),
                 'acc': get_attr(vehi, 'acce'),
-                'color': None, #get_attr(vehiStatus, 'mColor'),
+                'color': None,  # get_attr(vehiStatus, 'mColor'),
                 'distance': get_attr(vehiStatus, 'mrDrivDistance'),
                 'speed': get_attr(vehiStatus, 'mrSpeed'),
                 'vehiType': get_attr(vehiStatus, 'vehiType'),
@@ -87,31 +82,41 @@ def get_vehi_info(simuiface):
     return data
 
 
+class Producer:
+    def __init__(self, host, port, topic):
+        self.topic = topic
+        self.producer = KafkaProducer(bootstrap_servers=[f'{host}:{port}'], api_version=(0, 10))
+
+    def send(self, value):  # key@value 采用同样的key可以保证消息的顺序
+        self.producer.send(self.topic, key=json.dumps(self.topic).encode('utf-8'),
+                           value=json.dumps(value).encode('utf-8')).add_callback(self.on_send_success).add_errback(
+            self.on_send_error)
+        self.producer.flush()
+
+    # 定义一个发送成功的回调函数
+    def on_send_success(self, record_metadata):
+        pass
+
+    # 定义一个发送失败的回调函数
+    def on_send_error(self, excp):
+        print(f"send error:{excp}")
+
+
 class MyProcess:
     def __new__(cls, *args, **kw):
         if not hasattr(cls, '_instance'):
-            orig = super(MyProcess, cls)
-            cls._instance = orig.__new__(cls, *args, **kw)
-            print('create')
+            cls._instance = super(MyProcess, cls).__new__(cls)
         return cls._instance
 
     def __init__(self):
         self.my_queue = Queue(maxsize=100)
+        # 子进程创建时，会将主进程的所有元素深拷贝一份，所以在子进程中，使用的是自己的生产者
         p = Process(target=self.post, args=(self.my_queue,))
         p.start()
 
-
-    def post(self, my_queue):
+    def post(self, my_queue):  # 主进程初始化子进程时启动
+        producer = Producer(KAFKA_HOST, KAFKA_PORT, topic)
         while True:
-            if not my_queue.empty():
-                print(f"post:{id(my_queue)}")
-                pass
-                print(my_queue.get())
-
-# my_process = MyProcess()
-
-if __name__ == "__main__":
-    my_process = MyProcess()
-    while True:
-        print(1)
-        my_process.my_queue.put('aaaaaaaa')
+            data = my_queue.get()
+            producer.send(data)
+            print(data)

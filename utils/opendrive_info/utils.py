@@ -13,13 +13,13 @@ import csv
 
 
 # TODO 注意对第三方包的修改 --> change_convert.py
-def convert_opendrive(opendrive: OpenDrive, filter_types: list, roads_info=None) -> Scenario:
+def convert_opendrive(opendrive: OpenDrive, filter_types: list, roads_info, my_signal, pb) -> Scenario:
     road_network = Network()
     road_network.load_opendrive(opendrive)
     # TODO 在此处过滤车道类型
     # 精度 ParametricLaneGroup.to_lanelet(self, precision: float = 0.5)
     # 如果不传参数，将采取默认的过滤值 ["driving", "onRamp", "offRamp", "exit", "entry"]
-    return road_network.export_commonroad_scenario(filter_types=filter_types, roads_info=roads_info)  # commonroad-io==2020.2 版本需要验证
+    return road_network.export_commonroad_scenario(filter_types=filter_types, roads_info=roads_info, my_signal=my_signal, pb=pb)  # commonroad-io==2020.2 版本需要验证
 
 
 def calc_elevation(pos, elevations):
@@ -43,7 +43,7 @@ def calc_width(l1, l2):
     return width_list
 
 
-def convert_roads_info(opendrive, filter_types, step_length=0.5):  # step_length需要对第三方包进行修改
+def convert_roads_info(opendrive, filter_types, step_length):  # step_length需要对第三方包进行修改
     roads_info = {}
     for road in opendrive.roads:
         road_length = road.length
