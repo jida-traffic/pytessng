@@ -1,5 +1,8 @@
 from multiprocessing import Process
 from multiprocessing import Queue
+from multiprocessing import Process
+from multiprocessing import Queue
+
 
 # TODO 对于biking driving 不在同一路段的问题，我们可以生成两个json，分别过滤不同的值，多次执行生成路段
 width_limit = {
@@ -23,11 +26,16 @@ point_require = 2  # 连续次数后可视为正常车道，或者连续次数�
 if point_require < 2:
     raise 1
 
-import redis
-REDIS_HOST = 'tengxunyun'
-REDIS_PORT = 6379
-pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True, db=4)   # 前端传入的数据放在db=2
-redis_client = redis.Redis(connection_pool=pool)
+
+KAFKA_HOST = 'tengxunyun'
+KAFKA_PORT = 9092
+topic = 'tess'
+# import redis
+# REDIS_HOST = 'tengxunyun'
+# REDIS_PORT = 6379
+# pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True, db=4)   # 前端传入的数据放在db=2
+# redis_client = redis.Redis(connection_pool=pool)
+
 
 def get_vehi_info(simuiface):
     data = {
@@ -79,12 +87,6 @@ def get_vehi_info(simuiface):
     return data
 
 
-
-
-from multiprocessing import Process
-from multiprocessing import Queue
-
-
 class MyProcess:
     def __new__(cls, *args, **kw):
         if not hasattr(cls, '_instance'):
@@ -94,7 +96,7 @@ class MyProcess:
         return cls._instance
 
     def __init__(self):
-        self.my_queue = Queue(maxsize=1000)
+        self.my_queue = Queue(maxsize=100)
         p = Process(target=self.post, args=(self.my_queue,))
         p.start()
 
@@ -102,8 +104,9 @@ class MyProcess:
     def post(self, my_queue):
         while True:
             if not my_queue.empty():
+                print(f"post:{id(my_queue)}")
                 pass
-                # print(my_queue.get())
+                print(my_queue.get())
 
 # my_process = MyProcess()
 

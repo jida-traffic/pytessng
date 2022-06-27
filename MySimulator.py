@@ -1,13 +1,9 @@
-import json
-import time
-
-from PySide2.QtCore import *
-
-from Tessng import TessInterface, SimuInterface, PyCustomerSimulator, IVehicle, m2p, tngIFace, tngPlugin
-from Tessng import TESSNG
 import random
 
-from utils.config import redis_client, MyProcess, get_vehi_info
+from PySide2.QtCore import *
+from Tessng import TessInterface, SimuInterface, PyCustomerSimulator, IVehicle, m2p, tngIFace, tngPlugin
+from Tessng import TESSNG
+from utils.config import get_vehi_info
 
 
 class MySimulator(QObject, PyCustomerSimulator):
@@ -72,8 +68,6 @@ class MySimulator(QObject, PyCustomerSimulator):
         # elif vehi.currSpeed() < m2p(1):
         #     acce.value = m2p(2)
         # return False
-
-
 
     def ref_reCalcdesirSpeed(self, vehi, ref_esirSpeed):
         tmpId = vehi.id() % 100000
@@ -172,27 +166,17 @@ class MySimulator(QObject, PyCustomerSimulator):
         import sys
         my_process = sys.modules["__main__"].__dict__['myprocess']
         # 如果队列满了，取出第一个数据，为了防止数据在期间被另一进程消费完，导致等待(死锁)，采用nowait并捕获
+        print(f"put:{id(my_process.my_queue)}")
         if my_process.my_queue.full():
             try:
-                c = my_process.my_queue.get_nowait()
-                print(f"get ok{c}")
+                my_process.my_queue.get_nowait()
             except:
-                print('get_error')
                 pass
         try:
             my_process.my_queue.put_nowait(data)
-            print("put ok")
         except:
-            print('put_error')
             pass
         print(my_process.my_queue.qsize())
-            # from utils.config import redis_client
-            # data = get_vehi_info(simuiface)
-            # timestamp = int(time.time() * 1000)
-            # # import pdb;pdb.set_trace()
-            # print(data)
-            # redis_client.set(f"car-{int(timestamp)}", json.dumps(data),
-            #                  px=30 * 1000)  # 保存datatype，方便分别处理，数据量大过期时间不能过长
 
         # 当前在ID为1的路段上车辆
         lVehis = simuiface.vehisInLink(1)
