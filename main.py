@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-from pathlib import Path
 import sys
 
+from pathlib import Path
 from PySide2.QtWidgets import *
-
 from MyPlugin import MyPlugin
 from Tessng import *
-from utils.config import MyProcess
-import sys
+from utils.external_utils import MyProcess
 
 
 if __name__ == '__main__':

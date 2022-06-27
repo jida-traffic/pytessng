@@ -3,7 +3,7 @@ import random
 from PySide2.QtCore import *
 from Tessng import TessInterface, SimuInterface, PyCustomerSimulator, IVehicle, m2p, tngIFace, tngPlugin
 from Tessng import TESSNG
-from utils.config import get_vehi_info
+from utils.external_utils import get_vehi_info
 
 
 class MySimulator(QObject, PyCustomerSimulator):
@@ -166,7 +166,6 @@ class MySimulator(QObject, PyCustomerSimulator):
         import sys
         my_process = sys.modules["__main__"].__dict__['myprocess']
         # 如果队列满了，取出第一个数据，为了防止数据在期间被另一进程消费完，导致等待(死锁)，采用nowait并捕获
-        print(f"put:{id(my_process.my_queue)}")
         if my_process.my_queue.full():
             try:
                 my_process.my_queue.get_nowait()
@@ -176,7 +175,7 @@ class MySimulator(QObject, PyCustomerSimulator):
             my_process.my_queue.put_nowait(data)
         except:
             pass
-        print(my_process.my_queue.qsize())
+        # print(my_process.my_queue.qsize())
 
         # 当前在ID为1的路段上车辆
         lVehis = simuiface.vehisInLink(1)

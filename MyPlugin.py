@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from PySide2.QtWidgets import QDockWidget
-from Tessng import TessPlugin
 from MyNet import *
 from MySimulator import *
 from TESS_API_EXAMPLE import *
+
 
 # 用户插件，继承自TessPlugin
 class MyPlugin(TessPlugin):
