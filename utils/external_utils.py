@@ -63,7 +63,8 @@ class MyProcess:
         p = Process(target=self.post, args=(self.my_queue,))
         p.start()
 
-    def post(self, my_queue):  # 主进程初始化子进程时启动
+    def post(self, my_queue):
+        # 主进程初始化子进程时启动
         # 子进程有一个websocket，用来与前端进行通信
         # producer 和 users 列表都在子进程初始化，不会影响主进程
         web = WebSocketUtil(port=WEB_PORT)
@@ -71,7 +72,7 @@ class MyProcess:
         web.start_socket_server()
         while True:
             data = my_queue.get()
-            print(len(users))
+            # print(len(users))
             producer.send(data)
             # 判断是否有客户端连接，有才推送消息
             for user in copy.copy(users):

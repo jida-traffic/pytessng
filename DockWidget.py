@@ -33,9 +33,9 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_0 = QVBoxLayout(self.groupBox_1)
 
         xodr_label1 = QLabel()
-        xodr_label1.setText("步长选择(请在文件导入前选择)")
+        xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("0.5", "0.1", "1"))
+        self.xodrStep.addItems(("0.5", "0.1", "1", "5"))
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
         self.pb.setRange(0, 100)  # 进度对话框的范围设定
@@ -66,7 +66,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.txtMessage1.setObjectName(u"txtMessage")
 
         self.text_label_2 = QLabel()
-        self.text_label_2.setText("错误信息")
+        self.text_label_2.setText("创建异常信息提示窗\n(用户可根据异常信息手动更改)")
         self.txtMessage2 = QTextBrowser(self.groupBox_3)
         self.txtMessage2.setObjectName(u"txtMessage")
 
@@ -81,7 +81,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_4 = QVBoxLayout(self.groupBox_2)
 
         xodr_label2 = QLabel()
-        xodr_label2.setText("车道类型")
+        xodr_label2.setText("导入车道类型选择")
         self.xodrCk1, self.xodrCk2 = QCheckBox('机动车道'), QCheckBox('非机动车道')
         self.xodrCks = [self.xodrCk1, self.xodrCk2]
         for i in self.xodrCks:
@@ -91,7 +91,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnShowXodr.setObjectName(u"btnShowXodr")
 
         xodr_label3 = QLabel()
-        xodr_label3.setText(f"车道转换说明:\n机动车道:\n{'~0.2m:'.ljust(10)} 车道忽略\n{'0.2m~3m:'.ljust(10)} 视为连接段\n{'3m~:'.ljust(10)} 正常车道\n")
+        xodr_label3.setText(f"车道转换说明:\n机动车道:\n{'~0.2m:'.ljust(10)} 不解析\n{'0.2m~3m:'.ljust(10)} 视为连接段\n{'3m~:'.ljust(10)} 正常车道\n")
 
         self.verticalLayout_4.addWidget(xodr_label2)
         self.verticalLayout_4.addWidget(self.xodrCk1)
@@ -137,10 +137,10 @@ class Ui_TESS_API_EXAMPLEClass(object):
         # self.btnStartSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u542f\u52a8\u4eff\u771f", None))
         # self.btnPauseSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u6682\u505c\u4eff\u771f", None))
         # self.btnStopSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u505c\u6b62\u4eff\u771f", None))
-        self.groupBox_1.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u5bfc\u5165opendrive\u6587\u4ef6", None))
+        self.groupBox_1.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"opendrive文件导入", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u4fe1\u606f\u7a97", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u521b\u5efaTESS NG", None))
-        self.btnShowXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u786e\u8ba4", None))
+        self.btnShowXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"开始创建TESS NG路网", None))
 
 
     def change_progress(self, pb, value, network_info=None):

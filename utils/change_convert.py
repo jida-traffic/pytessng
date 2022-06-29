@@ -32,32 +32,6 @@ def export_commonroad_scenario(
 
     return scenario
 
-class Lane:
-    """ """
-
-    laneTypes = [
-        "none",
-        "driving",
-        "stop",
-        "shoulder",
-        "biking",
-        "sidewalk",
-        "border",
-        "restricted",
-        "parking",
-        "bidirectional",
-        "median",
-        "special1",
-        "special2",
-        "special3",
-        "roadWorks",
-        "tram",
-        "rail",
-        "entry",
-        "exit",
-        "offRamp",
-        "onRamp",
-    ]
 
 
 def export_lanelet_network(
@@ -208,3 +182,258 @@ def calc_vertices(self, precision: float = 0.5, poses=None) -> Tuple[np.ndarray,
         left_vertices.append(inner_pos)
         right_vertices.append(outer_pos)
     return (np.array(left_vertices), np.array(right_vertices))
+
+
+class Lane:
+    """ """
+
+    laneTypes = [
+        "none",
+        "driving",
+        "stop",
+        "shoulder",
+        "biking",
+        "sidewalk",
+        "border",
+        "restricted",
+        "parking",
+        "bidirectional",
+        "median",
+        "special1",
+        "special2",
+        "special3",
+        "roadWorks",
+        "tram",
+        "rail",
+        "entry",
+        "exit",
+        "offRamp",
+        "onRamp",
+        "curb",
+        "connectingRamp",
+    ]
+
+    def __init__(self, parentRoad, lane_section):
+        self._parent_road = parentRoad
+        self._id = None
+        self._type = None
+        self._level = None
+        self._link = LaneLink()
+        self._widths = []
+        self._borders = []
+        self._road_marks = []
+        self.lane_section = lane_section
+        self.has_border_record = False
+
+    @property
+    def parentRoad(self):
+        """ """
+        return self._parent_road
+
+    @property
+    def id(self):
+        """ """
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = int(value)
+
+    @property
+    def type(self):
+        """ """
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        if value not in self.laneTypes:
+            raise Exception()
+
+        self._type = str(value)
+
+    @property
+    def level(self):
+        """ """
+        return self._level
+
+    @level.setter
+    def level(self, value):
+        if value not in ["true", "false"] and value is not None:
+            raise AttributeError("Value must be true or false.")
+
+        self._level = value == "true"
+
+    @property
+    def link(self):
+        """ """
+        return self._link
+
+    @property
+    def widths(self):
+        """ """
+        self._widths.sort(key=lambda x: x.start_offset)
+        return self._widths
+
+    @widths.setter
+    def widths(self, value):
+        """"""
+        self._widths = value
+
+    def getWidth(self, widthIdx):
+        """
+
+        Args:
+          widthIdx:
+
+        Returns:
+
+        """
+        for width in self._widths:
+            if width.idx == widthIdx:
+                return width
+
+        return None
+
+    def getLastLaneWidthIdx(self):
+        """Returns the index of the last width sector of the lane"""
+
+        numWidths = len(self._widths)
+
+        if numWidths > 1:
+            return numWidths - 1
+
+        return 0
+
+    @property
+    def borders(self):
+        """ """
+        return self._borders
+
+    @property
+    def road_marks(self):
+        """ """
+        return self._road_marks
+
+
+def parse_opendrive_road_lane_section(newRoad, lane_section_id, lane_section):
+    """
+
+    Args:
+      newRoad:
+      lane_section_id:
+      lane_section:
+
+    """
+
+    newLaneSection = RoadLanesSection(road=newRoad)
+
+    # Manually enumerate lane sections for referencing purposes
+    newLaneSection.idx = lane_section_id
+
+    newLaneSection.sPos = float(lane_section.get("s"))
+    newLaneSection.singleSide = lane_section.get("singleSide")
+
+    sides = dict(
+        left=newLaneSection.leftLanes,
+        center=newLaneSection.centerLanes,
+        right=newLaneSection.rightLanes,
+    )
+
+    for sideTag, newSideLanes in sides.items():
+
+        side = lane_section.find(sideTag)
+
+        # It is possible one side is not present
+        if side is None:
+            continue
+
+        for lane in side.findall("lane"):
+
+            new_lane = RoadLaneSectionLane(
+                parentRoad=newRoad, lane_section=newLaneSection
+            )
+            new_lane.id = lane.get("id")
+            new_lane.type = lane.get("type")
+
+            # In some sample files the level is not specified according to the OpenDRIVE spec
+            new_lane.level = (
+                "true" if lane.get("level") in [1, "1", "true"] else "false"
+            )
+
+            # Lane Links
+            if lane.find("link") is not None:
+
+                if lane.find("link").find("predecessor") is not None:
+                    new_lane.link.predecessorId = (
+                        lane.find("link").find("predecessor").get("id")
+                    )
+
+                if lane.find("link").find("successor") is not None:
+                    new_lane.link.successorId = (
+                        lane.find("link").find("successor").get("id")
+                    )
+
+            # Width
+            for widthIdx, width in enumerate(lane.findall("width")):
+
+                newWidth = RoadLaneSectionLaneWidth(
+                    float(width.get("a")),
+                    float(width.get("b")),
+                    float(width.get("c")),
+                    float(width.get("d")),
+                    idx=widthIdx,
+                    start_offset=float(width.get("sOffset")),
+                )
+
+                new_lane.widths.append(newWidth)
+
+            # Border
+            for borderIdx, border in enumerate(lane.findall("border")):
+
+                newBorder = RoadLaneSectionLaneBorder(
+                    float(border.get("a")),
+                    float(border.get("b")),
+                    float(border.get("c")),
+                    float(border.get("d")),
+                    idx=borderIdx,
+                    start_offset=float(border.get("sOffset")),
+                )
+
+                new_lane.borders.append(newBorder)
+
+            if lane.find("width") is None and lane.find("border") is not None:
+                new_lane.widths = new_lane.borders
+                new_lane.has_border_record = True
+
+            # Road Marks
+            # TODO implementation 添加roadMark
+            for markIdx, roadMark in enumerate(lane.findall("roadMark")):
+                newMark = {
+                    "idx": markIdx,
+                    "color": roadMark.get("color"),
+                    "start_offset": float(roadMark.get("sOffset")),
+                    "type": roadMark.get("type"),
+                }
+                new_lane.road_marks.append(newMark)
+
+            # Material
+            # TODO implementation
+
+            # Visiblility
+            # TODO implementation
+
+            # Speed
+            # TODO implementation
+
+            # Access
+            # TODO implementation
+
+            # Lane Height
+            # TODO implementation
+
+            # Rules
+            # TODO implementation
+
+            newSideLanes.append(new_lane)
+
+    newRoad.lanes.lane_sections.append(newLaneSection)

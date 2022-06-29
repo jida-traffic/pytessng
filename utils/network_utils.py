@@ -225,7 +225,7 @@ class Network:
         for road_id, road_info in roads_info.items():
             if road_info['junction_id'] == None:
                 road_info['junction_id'] = -1
-            # 记录 坐标点的极值
+            # 记录 坐标点的极值 (取左右point列表无区别，只是计算方向不同)
             for section_id, points in road_info['road_points'].items():
                 for point in points['right_points']:
                     position = point['position']
@@ -255,6 +255,8 @@ class Network:
             "roads_info": roads_info,
             "lanes_info": lanes_info,
         }
+        with open("test.json", 'w') as f:
+            json.dump(self.network_info, f)
         my_signal.emit(pb, 100, self.network_info)
 
     def create_network(self, tess_lane_types):

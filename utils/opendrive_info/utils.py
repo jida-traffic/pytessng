@@ -60,6 +60,8 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
 
             steps = int(section_length // step_length + 1)  # steps >= 2
             lengths = list(linspace(section_sPos, section_ePos, steps))
+            left_offsets = []
+            right_offsets = []
             # lengths = list(road_section_distance[road.id][section_id].values())[0] # 尽量拟合路段与车道
             # 计算每一点的坐标和角度
             for length in lengths:
@@ -74,14 +76,18 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
                     {
                         "position": list(right_position),
                         'angle': right_angle,
+                        "offset": right_length,  # 记录在本section内此点的移动位置
                     }
                 )
                 left_points.append(
                     {
                         "position": list(left_position),
                         'angle': left_angle,
+                        "offset": left_length,
                     }
                 )
+                left_offsets.append(left_length)
+                right_offsets.append(right_length)
 
             # 左右方向参考线点计算不一样
             road_points[section_id] = {
@@ -92,6 +98,8 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
                 'length': section_length,
                 'steps': steps,
                 'lengths': lengths,
+                "left_offsets": left_offsets,
+                "right_offsets": right_offsets,
             }
 
         # 计算每一段section 的高程信息
@@ -121,22 +129,41 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
     return roads_info
 
 
-def convert_lanes_info(opendrive, scenario):
+def convert_lanes_info(opendrive, scenario, roads_info):
     # 获取 link与交叉口关系
-    road_junction = {}
+    scenario_mapping = {
+        "roads": {},
+        "sections": {},
+        "lanes": {},
+    }
     for road in opendrive.roads:
-        road_junction[road.id] = road.junction and road.junction.id  # 此道路是在交叉口内部
+        scenario_mapping["roads"][road.id] = road
+        for sectionidx, section in enumerate(road.lanes.lane_sections):
+            scenario_mapping["sections"][f"{road.id},{sectionidx}"] = section
+            for lane in section.allLanes:
+                scenario_mapping["lanes"][f"{road.id},{sectionidx},{lane.id}"] = lane
+                if lane.id == 0: # 中心车道信息保存在road info中
+                    roads_info[road.id]['lane_sections'][sectionidx]['center_lane'] = {
+                        "lane_id": lane.id,
+                        "road_marks": lane.road_marks,
+                        "widths": lane.widths,
+                    }
 
     # 获取道路与路段关系
     lanes_info = defaultdict(dict)
-    road_section_distance = collections.defaultdict(dict)
+    # 中心车道未转换，用参考线代替
     for lane in scenario.lanelet_network.lanelets:
+        if lane.stop_line:
+            raise Exception("ccccccccccccccccccc 车辆停止线")
+
+        # center_lane
         # 获取所在路段
         lane_name = lane.lanelet_id
         ids = lane_name.split('.')
         road_id = int(ids[0])
         section_id = int(ids[1])
         lane_id = int(ids[2])
+        road_marks = scenario_mapping["lanes"][f"{road_id},{section_id},{lane_id}"].road_marks
 
         # 计算车道宽度
         center_vertices, left_vertices, right_vertices = lane.center_vertices.tolist(), lane.left_vertices.tolist(), lane.right_vertices.tolist()
@@ -163,13 +190,14 @@ def convert_lanes_info(opendrive, scenario):
             "left_vertices": left_vertices,
             "right_vertices": right_vertices,
             "widths": widths,
+            "road_marks": road_marks,
             'traffic_lights': list(lane.traffic_lights),
             'traffic_signs': list(lane.traffic_signs),
             'distance': list(lane.distance),
         }
 
     # 车道ID，中心车道为0， 正t方向升序，负t方向降序(基本可理解为沿参考线从左向右下降)
-    return lanes_info, road_junction, road_section_distance
+    return lanes_info
 
 
 def lane_restrictions(lane):
@@ -226,3 +254,14 @@ def convert_section_info(sections, filter_types):
         sections_mapping[section_id]['all'] = sections_mapping[section_id]['right'] + sections_mapping[section_id]['left'] + sections_mapping[section_id]['center']
     # 缺少限制数据
     return sections_mapping
+
+
+from numpy import sqrt, square
+def deviation_point(coo1, coo2, width, right=False, is_last=False):
+    signl = 1 if right else -1  #记录向左向右左右偏移
+    x1, y1, x2, y2 = coo1[0], coo1[1], coo2[0], coo2[1]  # 如果是最后一个点，取第二个 点做偏移
+    x_base, y_base = (x1, y1) if not is_last else (x2, y2)
+    X = x_base + signl * width * (y2 - y1) / sqrt(square(x2-x1) + square((y2-y1)))
+    Y = y_base + signl * width * (x1 - x2) / sqrt(square(x2-x1) + square((y2-y1)))
+    print(X, Y)
+    return [X, Y]
