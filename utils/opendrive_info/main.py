@@ -1,3 +1,4 @@
+import collections
 import os
 import json
 from lxml import etree
@@ -24,6 +25,7 @@ def main(xodr_file, filter_types, step_length, my_signal, pb):
     scenario = convert_opendrive(opendrive, filter_types, roads_info, my_signal, pb)
     lanes_info = convert_lanes_info(opendrive, scenario, roads_info)
 
+    # TODO 尽量不要转换，太耗性能
     convert_unity(roads_info, lanes_info)
 
     # 写入文件&绘制参考线
@@ -50,21 +52,39 @@ def convert_unity(roads_info, lanes_info):
 
     # unity 数据导出
     line_width = 0.2
-    # 车道
-    VehicleLane = []
-    # 车道边界线
-    whiteDottedLine = []
-    yellowLine = []
 
+    # 车道与unity 映射表
+    unity_lane_mapping = {
+        "Driving": ["driving", "stop", "parking", "entry", "exit", "offRamp", "onRamp", "connectingRamp",],
+        "None": ["none"],
+        "GreenBelt": ["shoulder", "border", "median", "curb"],
+        "SideWalk": ["sidewalk"],
+        "Biking": ["biking",],
+        "Restricted": ["restricted"],
+        "WhiteLine": [],
+        "YellowLine": [],
+        "Other": ["bidirectional", "special1", "special2", "special3", "roadWorks", "tram", "rail",]
+    }
+    lane_unity_mapping = {}
+    for unity, lane_types in unity_lane_mapping.items():
+        for lane_type in lane_types:
+            lane_unity_mapping[lane_type] = unity
+
+    unity_info = collections.defaultdict(list)
+
+
+    # 将车道信息绘制成三角形放入参考表中
     for lane_info in lanes_info.values():
+        lane_type = lane_info["type"]
         left_vertices, right_vertices = lane_info['left_vertices'], lane_info['right_vertices']
         for index, distance in enumerate(lane_info['distance'][:-1]): # 两两组合，最后一个不可作为首位
             left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index+1], right_vertices[index], right_vertices[index+1]
             coo_0 = [[left_0[0] - x_move, 0, left_0[1] - y_move],  [left_1[0] - x_move, 0, left_1[1] - y_move], [right_0[0] - x_move, 0, right_0[1] - y_move]]
             coo_1 = [[left_1[0] - x_move, 0, left_1[1] - y_move], [right_1[0] - x_move, 0, right_1[1] - y_move], [right_0[0] - x_move, 0, right_0[1] - y_move]]
-            VehicleLane += coo_0 + coo_1
+            unity_info[lane_unity_mapping[lane_type]] += coo_0 + coo_1
 
 
+    # 绘制车道分隔线
     between_line = {}
     for lanelet_id, lane_info in lanes_info.items():
         width = 0.2
@@ -134,8 +154,9 @@ def convert_unity(roads_info, lanes_info):
                 between_line[lanelet_id]["center_vertices"].append(base_points)
 
 
-    # 对于左向车道，road_mark 可能需要倒序
+    # 绘制车道分隔线
     for lanelet_id, line_info in between_line.items():
+        # 对于左向车道，road_mark 可能需要倒序
         road_marks = line_info["road_marks"]
         if not road_marks:
             continue
@@ -157,17 +178,6 @@ def convert_unity(roads_info, lanes_info):
                 road_mark['end_offset'] = road_mark.get("end_offset", length)
 
 
-        #
-        # def get_color_type(distance, road_marks):
-        #     if len(road_marks) == 1:
-        #         return road_marks[0]['color'], road_marks[0]['type']
-        #
-        #     for idx, road_mark in enumerate(road_marks):
-        #         if distance < road_mark["start_offset"]:
-        #             return road_marks[idx-1]['color'], road_mark[idx-1]['type']
-        #     return road_marks[-1]['color'], road_marks[-1]['type']
-
-
         section_info = roads_info[road_id]["road_points"][section_id]
         offsets = section_info["right_offsets"] if lane_id >= 0 else section_info["left_offsets"]
         if len(offsets) != len(line_info["center_vertices"]):
@@ -185,20 +195,33 @@ def convert_unity(roads_info, lanes_info):
             if type == "broken" and index % 10 in [1,2,3]:  # 断线
                 continue
             if color == "yellow":
-                yellowLine += coo_0 + coo_1
+                unity_info["YellowLine"] += coo_0 + coo_1
             else:
-                whiteDottedLine += coo_0 + coo_1
+                unity_info["WhiteLine"] += coo_0 + coo_1
+
+    for key, info in unity_info.items():
+        unity_info[key] = {'pointsArray':info,'drawOrder':[i for i in range(len(info))],'count': int(len(info))}
+    # json.dump(unity_info, open("unity.json", 'w'))
 
 
-    # 'whiteDottedLine': {}, 'stopLine': {}, 'VehicleLane': {}, 'sideWalk': {}, 'greenBelt': {}
-    data = {
-        "yellowLine": {'pointsArray':yellowLine,'drawOrder':[i for i in range(len(yellowLine))],'count': int(len(yellowLine))},
-        "whiteDottedLine": {'pointsArray':whiteDottedLine,'drawOrder':[i for i in range(len(whiteDottedLine))],'count': int(len(whiteDottedLine))},
-        "stopLine": {},
-        "VehicleLane": {'pointsArray':VehicleLane,'drawOrder':[i for i in range(len(VehicleLane))],'count': int(len(VehicleLane))},
-        "sideWalk": {},
-        "greenBelt": {},
-    }
-    json.dump(data, open("unity.json", 'w'))
+    # 发送 unity地图消息 给前端
+    import sys, copy
+    my_process = sys.modules["__main__"].__dict__['myprocess']
+    # from utils.external_utils import users
+    # users = WebSocketUtil.users
+    # 此处已经在子进程里，users 为空，应该采用队列的形式
+    users = []
+    for user in copy.copy(users):
+        my_process.web.send_msg(user, bytes(json.dumps(unity_info), encoding="utf-8"))
 
-    return data
+    if my_process.my_queue.full():
+        try:
+            my_process.my_queue.get_nowait()
+        except:
+            pass
+    try:
+        my_process.my_queue.put_nowait(unity_info)
+    except:
+        pass
+
+    return unity_info

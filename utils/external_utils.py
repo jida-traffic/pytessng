@@ -60,23 +60,27 @@ class MyProcess:
     def __init__(self):
         self.my_queue = Queue(maxsize=100)
         # 子进程创建时，会将主进程的所有元素深拷贝一份，所以在子进程中，使用的是自己的生产者
+        # 采用安全的队列，将队列传入进程中
         p = Process(target=self.post, args=(self.my_queue,))
         p.start()
 
+    # websocket
     def post(self, my_queue):
-        # 主进程初始化子进程时启动
+        # TODO 主进程初始化子进程时启动,此进程里保存了users，外部看不到,需要采用队列的方式
         # 子进程有一个websocket，用来与前端进行通信
         # producer 和 users 列表都在子进程初始化，不会影响主进程
-        web = WebSocketUtil(port=WEB_PORT)
+        self.web = WebSocketUtil(port=WEB_PORT)
         producer = Producer(KAFKA_HOST, KAFKA_PORT, topic)
-        web.start_socket_server()
+        self.web.start_socket_server()
         while True:
             data = my_queue.get()
             # print(len(users))
             producer.send(data)
             # 判断是否有客户端连接，有才推送消息
             for user in copy.copy(users):
-                web.send_msg(user, bytes(json.dumps(data), encoding="utf-8"))
+                self.web.send_msg(user, bytes(json.dumps(data), encoding="utf-8"))
+                print(f"{user} send ok")
+            print(f"send done")
 
 
 # 汽车数据转换
@@ -133,7 +137,6 @@ def get_vehi_info(simuiface):
 class WebSocketUtil(object):
     global users
     users = set()
-
     def __init__(self, port=8765, max_wait_user=5):
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -161,8 +164,8 @@ class WebSocketUtil(object):
     # 等待用户连接
     def socket_connect(self):
         conn, addr = self.sock.accept()
-        print('ok', users)
         users.add(conn)
+        print('add user:', users)
         # 获取握手消息，magic string ,sha1加密  发送给客户端  握手消息
         data = conn.recv(8096)
         headers = self.get_headers(data)
@@ -182,8 +185,8 @@ class WebSocketUtil(object):
         conn.send(bytes(response_str, encoding='utf-8'), )
 
         # # 新的连接成功立马发一次数据
-        # data = summary()
-        # self.send_msg(conn, bytes(json.dumps(data), encoding="utf-8"))
+        data = {"message": "connect done"}
+        self.send_msg(conn, bytes(json.dumps(data), encoding="utf-8"))
 
 
     # 向客户端发送数据
@@ -196,13 +199,13 @@ class WebSocketUtil(object):
         """
         token = b"\x81"  # 接收的第一字节，一般都是x81不变
         length = len(msg_bytes)
+        print(length)
         if length < 126:
             token += struct.pack("B", length)
         elif length <= 0xFFFF:
             token += struct.pack("!BH", 126, length)
         else:
             token += struct.pack("!BQ", 127, length)
-
         msg = token + msg_bytes
         # 如果出错就是客户端断开连接
         try:

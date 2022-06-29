@@ -261,7 +261,8 @@ def deviation_point(coo1, coo2, width, right=False, is_last=False):
     signl = 1 if right else -1  #记录向左向右左右偏移
     x1, y1, x2, y2 = coo1[0], coo1[1], coo2[0], coo2[1]  # 如果是最后一个点，取第二个 点做偏移
     x_base, y_base = (x1, y1) if not is_last else (x2, y2)
+    if not ((x2-x1) or (y2-y1)):  # 分母为0
+        return [x_base, y_base]
     X = x_base + signl * width * (y2 - y1) / sqrt(square(x2-x1) + square((y2-y1)))
     Y = y_base + signl * width * (x1 - x2) / sqrt(square(x2-x1) + square((y2-y1)))
-    print(X, Y)
     return [X, Y]

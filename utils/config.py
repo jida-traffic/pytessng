@@ -31,4 +31,4 @@ KAFKA_HOST = 'tengxunyun'
 KAFKA_PORT = 9092
 topic = 'tess'
 
-WEB_PORT = 8006
+WEB_PORT = 8888
