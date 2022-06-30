@@ -39,7 +39,7 @@ def get_section_childs(section_info, lengths, direction):
     # 连续多个点的信息完全一致，可作为 TODO 对lane_type 做映射，不同车道类型可以汇合成同一类型，
     childs = []
     child_point = []
-    start_index = None
+    start_index = None #分片时，start_index 为None 会视为0
     for index in range(len(lengths)):
         if len(child_point) == 1:
             start_index = index - 1
@@ -141,6 +141,7 @@ class Section:
         return link_info.get(lane_id)
 
     def tess_link(self, lane_id, type):
+        # try: #步长过大会导致部分路段无法创建，提取失败
         if lane_id > 0:
             if type == 'from':
                 return self.left_link[-1]['link']
@@ -333,6 +334,7 @@ class Network:
                     reverse = True if direction == 'left' else False
                     for index in range(len(childs)):
                         child = childs[index]
+                        # 步长过大，可能会导致在分段时 child 只包含了一个点
                         start_index, end_index = child['start'], child['end'] + 1
                         land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=reverse)
                         lCenterLinePoint = self.get_coo_list([point["position"] for point in points][start_index:end_index])
@@ -352,12 +354,13 @@ class Network:
                         ]
                         link_obj = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                      f"{road_id}_{section_id}_{index}_{direction}")
-                        section_links.append(
-                            {
-                                'link': link_obj,
-                                'lane_ids': land_ids,
-                            }
-                        )
+                        if link_obj:
+                            section_links.append(
+                                {
+                                    'link': link_obj,
+                                    'lane_ids': land_ids,
+                                }
+                            )
 
                     tess_section.__setattr__(f"{direction}_link", section_links)
                     # tess_section.left_link = section_links

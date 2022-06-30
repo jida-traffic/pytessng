@@ -66,7 +66,7 @@ class MyProcess:
 
     # websocket
     def post(self, my_queue):
-        # TODO 主进程初始化子进程时启动,此进程里保存了users，外部看不到,需要采用队列的方式
+        # TODO 主进程初始化子进程时启动,此(子)进程里保存了users，外部看不到,需要采用队列的方式
         # 子进程有一个websocket，用来与前端进行通信
         # producer 和 users 列表都在子进程初始化，不会影响主进程
         self.web = WebSocketUtil(port=WEB_PORT)

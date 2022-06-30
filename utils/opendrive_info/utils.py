@@ -58,7 +58,7 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
             section_sPos = section.sPos
             section_ePos = section_sPos + section_length
 
-            steps = int(section_length // step_length + 1)  # steps >= 2
+            steps = int(section_length // step_length + 2)  # steps >= 2
             lengths = list(linspace(section_sPos, section_ePos, steps))
             left_offsets = []
             right_offsets = []
@@ -254,15 +254,3 @@ def convert_section_info(sections, filter_types):
         sections_mapping[section_id]['all'] = sections_mapping[section_id]['right'] + sections_mapping[section_id]['left'] + sections_mapping[section_id]['center']
     # 缺少限制数据
     return sections_mapping
-
-
-from numpy import sqrt, square
-def deviation_point(coo1, coo2, width, right=False, is_last=False):
-    signl = 1 if right else -1  #记录向左向右左右偏移
-    x1, y1, x2, y2 = coo1[0], coo1[1], coo2[0], coo2[1]  # 如果是最后一个点，取第二个 点做偏移
-    x_base, y_base = (x1, y1) if not is_last else (x2, y2)
-    if not ((x2-x1) or (y2-y1)):  # 分母为0
-        return [x_base, y_base]
-    X = x_base + signl * width * (y2 - y1) / sqrt(square(x2-x1) + square((y2-y1)))
-    Y = y_base + signl * width * (x1 - x2) / sqrt(square(x2-x1) + square((y2-y1)))
-    return [X, Y]
