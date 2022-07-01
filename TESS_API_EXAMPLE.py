@@ -14,7 +14,7 @@ class MySignals(QObject):
     # 定义一种信号，因为有文本框和进度条两个类，此处要四个参数，类型分别是： QPlainTextEdit 、 QProgressBar、字符串和整形数字
     # 调用 emit方法发信号时，传入参数必须是这里指定的参数类型
     # 此处也可分开写两个函数，一个是文本框输出的，一个是给进度条赋值的
-    text_print = Signal(QProgressBar, int, dict)
+    text_print = Signal(QProgressBar, int, dict, bool)
 
 class TESS_API_EXAMPLE(QMainWindow):
     def __init__(self, parent=None):

@@ -35,7 +35,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("0.5", "0.1", "1", "5"))
+        self.xodrStep.addItems(("0.5", "0.1", "1", "5", "10", "20"))
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
         self.pb.setRange(0, 100)  # 进度对话框的范围设定
@@ -143,7 +143,15 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnShowXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"开始创建TESS NG路网", None))
 
 
-    def change_progress(self, pb, value, network_info=None):
+    def change_progress(self, pb, value, network_info=None, error=False):
+        if error:
+            # 导入失败，窗体不显示，错误提示
+            self.pb.setVisible(False)
+            self.text_label_1.setVisible(False)
+            self.groupBox_2.setVisible(False)
+            self.btnOpenNet.setEnabled(True)
+            QMessageBox.warning(None, "提示信息", "路网解析错误，请联系开发者")
+            return
         pb.setValue(value)
         if not network_info:
             self.pb.setVisible(True)

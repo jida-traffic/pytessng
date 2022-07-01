@@ -220,45 +220,47 @@ class Network:
         self.app = QApplication
 
     def convert_network(self, my_signal, pb):
-        from utils.opendrive_info.main import main
-        header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, self.step_length, my_signal, pb)
+        try:
+            from utils.opendrive_info.main import main
+            header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, self.step_length, my_signal, pb)
 
-        for road_id, road_info in roads_info.items():
-            if road_info['junction_id'] == None:
-                road_info['junction_id'] = -1
-            # 记录 坐标点的极值 (取左右point列表无区别，只是计算方向不同)
-            for section_id, points in road_info['road_points'].items():
-                for point in points['right_points']:
-                    position = point['position']
-                    if self.xy_limit is None:
-                        self.xy_limit = [position[0], position[0], position[1], position[1]]
-                    else:
-                        self.xy_limit[0] = min(self.xy_limit[0], position[0])
-                        self.xy_limit[1] = max(self.xy_limit[1], position[0])
-                        self.xy_limit[2] = min(self.xy_limit[2], position[1])
-                        self.xy_limit[3] = max(self.xy_limit[3], position[1])
+            for road_id, road_info in roads_info.items():
+                if road_info['junction_id'] == None:
+                    road_info['junction_id'] = -1
+                # 记录 坐标点的极值 (取左右point列表无区别，只是计算方向不同)
+                for section_id, points in road_info['road_points'].items():
+                    for point in points['right_points']:
+                        position = point['position']
+                        if self.xy_limit is None:
+                            self.xy_limit = [position[0], position[0], position[1], position[1]]
+                        else:
+                            self.xy_limit[0] = min(self.xy_limit[0], position[0])
+                            self.xy_limit[1] = max(self.xy_limit[1], position[0])
+                            self.xy_limit[2] = min(self.xy_limit[2], position[1])
+                            self.xy_limit[3] = max(self.xy_limit[3], position[1])
 
-        for lane_name, lane_info in lanes_info.items():
-            if not lane_info:  # 此车道只是文件中某车道的前置或者后置车道，仅仅被提及，是空信息，跳过
-                continue
-            road_id = lane_info['road_id']
-            section_id = lane_info['section_id']
-            lane_id = lane_info['lane_id']
+            for lane_name, lane_info in lanes_info.items():
+                if not lane_info:  # 此车道只是文件中某车道的前置或者后置车道，仅仅被提及，是空信息，跳过
+                    continue
+                road_id = lane_info['road_id']
+                section_id = lane_info['section_id']
+                lane_id = lane_info['lane_id']
 
-            # 添加默认属性
-            roads_info[road_id].setdefault('sections', {})
-            roads_info[road_id]['sections'].setdefault(section_id, {})
-            roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
-            roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
+                # 添加默认属性
+                roads_info[road_id].setdefault('sections', {})
+                roads_info[road_id]['sections'].setdefault(section_id, {})
+                roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
+                roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
 
-        self.network_info = {
-            "header_info": header_info,
-            "roads_info": roads_info,
-            "lanes_info": lanes_info,
-        }
-        with open("test.json", 'w') as f:
-            json.dump(self.network_info, f)
-        my_signal.emit(pb, 100, self.network_info)
+            self.network_info = {
+                "header_info": header_info,
+                "roads_info": roads_info,
+                "lanes_info": lanes_info,
+            }
+            my_signal.emit(pb, 100, self.network_info, False)
+        except:
+            my_signal.emit(pb, 101, {}, True)
+
 
     def create_network(self, tess_lane_types):
         # 代表TESS NG的接口

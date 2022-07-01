@@ -23,7 +23,7 @@ def main(xodr_file, filter_types, step_length, my_signal, pb):
     scenario = convert_opendrive(opendrive, filter_types, roads_info, my_signal, pb)
     lanes_info = convert_lanes_info(opendrive, scenario, roads_info)
 
-    # TODO 尽量不要转换，太耗性能
+    # TODO 尽量不要转换
     import time
     start_time = time.time()
     convert_unity(roads_info, lanes_info)

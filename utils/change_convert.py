@@ -71,7 +71,7 @@ def export_lanelet_network(
 
         lanelet_network.add_lanelet(lanelet)
         progress += 1
-        my_signal.emit(pb, int(progress / len(self._planes) * 80), {})
+        my_signal.emit(pb, int(progress / len(self._planes) * 80), {}, False)
 
     # prune because some
     # successorIds get encoded with a non existing successorID

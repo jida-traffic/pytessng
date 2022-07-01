@@ -14,11 +14,26 @@ def deviation_point(coo1, coo2, width, right=False, is_last=False):
     return [X, Y]
 
 
+# TODO 移除部分车道
+filter_ids = [3,6,5,4,80,67,82,83,748,749,2,668,723,391,116,668]
+border_line_width = 0.2
+center_line_width = 0.3
 def convert_unity(roads_info, lanes_info):
+    new_lanes_info = {}
+    new_roads_info = {}
+    for lane_id, lane_info in lanes_info.items():
+        pre_ids = [int(i.split(".")[0]) for i in lane_info["predecessor_ids"]]
+        suc_ids = [int(i.split(".")[0]) for i in lane_info["successor_ids"]]
+        if (set(filter_ids) & set(pre_ids)) or (set(filter_ids) & set(suc_ids)) or lane_info["road_id"] in filter_ids:
+            continue
+        new_lanes_info[lane_id] = lane_info
+
     xy_limit = None
     for road_id, road_info in roads_info.items():
-        if road_info['junction_id'] == None:
-            road_info['junction_id'] = -1
+        if not (road_info['junction_id'] == None or road_id in filter_ids):
+            continue
+        new_roads_info[road_id] = road_info
+
         # 记录 坐标点的极值
         for section_id, points in road_info['road_points'].items():
             for point in points['right_points']:
@@ -32,9 +47,8 @@ def convert_unity(roads_info, lanes_info):
                     xy_limit[3] = max(xy_limit[3], position[1])
     x_move, y_move = sum(xy_limit[:2]) / 2, sum(xy_limit[2:]) / 2 if xy_limit else (0, 0)
 
+    lanes_info, roads_info = new_lanes_info, new_roads_info
     # unity 数据导出
-    line_width = 0.2
-
     # 车道与unity 映射表
     unity_lane_mapping = {
         "Driving": ["driving", "stop", "parking", "entry", "exit", "offRamp", "onRamp", "connectingRamp", ],
@@ -72,7 +86,6 @@ def convert_unity(roads_info, lanes_info):
     # 绘制车道分隔线
     between_line = {}
     for lanelet_id, lane_info in lanes_info.items():
-        width = 0.2
         between_line[lanelet_id] = {
             "road_id": lane_info["road_id"],
             "section_id": lane_info["section_id"],
@@ -93,9 +106,9 @@ def convert_unity(roads_info, lanes_info):
             else:
                 is_last = False
                 num = index
-            left_point = deviation_point(base_points[num], base_points[num + 1], width / 2, right=False,
+            left_point = deviation_point(base_points[num], base_points[num + 1], border_line_width / 2, right=False,
                                          is_last=is_last)
-            right_point = deviation_point(base_points[num], base_points[num + 1], width / 2, right=True,
+            right_point = deviation_point(base_points[num], base_points[num + 1], border_line_width / 2, right=True,
                                           is_last=is_last)
             between_line[lanelet_id]["left_vertices"].append(left_point)
             between_line[lanelet_id]["right_vertices"].append(right_point)
@@ -103,7 +116,6 @@ def convert_unity(roads_info, lanes_info):
 
     # 计算中心车道的分隔线
     for road_id, road_info in roads_info.items():
-        width = 0.4
         for section_id, section in road_info["lane_sections"].items():
             lanelet_id = f"{road_id},{section_id},0"
             between_line[lanelet_id] = {
@@ -128,9 +140,9 @@ def convert_unity(roads_info, lanes_info):
                 else:
                     is_last = False
                     num = index
-                left_point = deviation_point(base_points[num], base_points[num + 1], width / 2, right=False,
+                left_point = deviation_point(base_points[num], base_points[num + 1], center_line_width / 2, right=False,
                                              is_last=is_last)
-                right_point = deviation_point(base_points[num], base_points[num + 1], width / 2, right=True,
+                right_point = deviation_point(base_points[num], base_points[num + 1], center_line_width / 2, right=True,
                                               is_last=is_last)
                 between_line[lanelet_id]["left_vertices"].append(left_point)
                 between_line[lanelet_id]["right_vertices"].append(right_point)
@@ -138,7 +150,6 @@ def convert_unity(roads_info, lanes_info):
 
     # 绘制车道分隔线
     for lanelet_id, line_info in between_line.items():
-        # break
         # 对于左向车道，road_mark 可能需要倒序
         road_marks = line_info["road_marks"]
         if not road_marks:
@@ -173,7 +184,7 @@ def convert_unity(roads_info, lanes_info):
                         break  # 必须取到正确的mark
             color = road_mark["color"]
             type = road_mark["type"]
-            if type == "broken" and index % 4 in [0, 1]:  # 断线
+            if type == "broken" and index % 10 in [0, 1, 2, 3]:  # 断线 3:2
                 continue
 
             left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index + 1], right_vertices[index], \
@@ -187,9 +198,45 @@ def convert_unity(roads_info, lanes_info):
             else:
                 unity_info["WhiteLine"] += coo_0 + coo_1
 
-    for key, info in unity_info.items():
-        unity_info[key] = {'pointsArray': info, 'drawOrder': [i for i in range(len(info))], 'count': int(len(info))}
+    # for key, info in unity_info.items():
+    #     unity_info[key] = {'pointsArray': info, 'drawOrder': [i for i in range(len(info))], 'count': int(len(info))}
     # json.dump(unity_info, open("unity.json", 'w'))
+
+    # 将 unity_info 切割
+    # unity_info_list = []
+    # temp = collections.defaultdict(list)
+    # count = 0
+    # for key, value in unity_info.items():
+    #     for point in value:
+    #         temp[key].append(point)
+    #         count += 1
+    #         if count == 60000:
+    #             unity_info_list.append(
+    #                 {key: {'pointsArray': value, 'drawOrder': [i for i in range(len(value))], 'count': int(len(value))} for key, value in temp.items()}
+    #             )
+    #             temp = collections.defaultdict(list)
+    #             count = 0
+    # if count != 60000:
+    #     unity_info_list.append(
+    #         {key: {'pointsArray': value, 'drawOrder': [i for i in range(len(value))], 'count': int(len(value))} for
+    #          key, value in temp.items()}
+    #     )
+    # unity_info = unity_info_list
+    from math import ceil
+
+    def chunk(lst, size):
+        return list(
+            map(lambda x: lst[x * size:x * size + size],
+                list(range(0, ceil(len(lst) / size)))))
+
+    unity_count = {}
+    for key, value in unity_info.items():
+        # value = []
+        unity_info[key] = [{'pointsArray': info, 'drawOrder': [i for i in range(len(info))], 'count': int(len(info))} for info in chunk(value, 60000)]
+        unity_count[key] = len(unity_info[key])
+
+    json.dump({"unity": unity_info, "count": unity_count}, open("unity.json", 'w'))
+
 
     # 发送 unity地图消息 给前端
     import sys, copy
