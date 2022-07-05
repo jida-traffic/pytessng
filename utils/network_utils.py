@@ -5,7 +5,6 @@ from PySide2.QtWidgets import QApplication
 from PySide2.QtCore import QPointF
 from Tessng import m2p, tngIFace
 from utils.config import *
-from opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
 
 
 def get_section_childs(section_info, lengths, direction):
@@ -214,14 +213,14 @@ class Network:
         self.step_length = step_length or 0.5
         # 定义静态文件及所处位置文件夹
         # filter_types = ["driving", "onRamp", "offRamp", "exit", "entry"]  # 一般用于机动车行驶的车道
-        self.filter_types = filter_types or Lane.laneTypes
+        self.filter_types = filter_types
         self.xy_limit = None  # x1,x2,y1,y2
         self.network_info = None
         self.app = QApplication
 
     def convert_network(self, my_signal, pb):
         try:
-            from utils.opendrive_info.main import main
+            from opendrive2tess.main import main
             header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, self.step_length, my_signal, pb)
 
             for road_id, road_info in roads_info.items():
@@ -258,8 +257,9 @@ class Network:
                 "lanes_info": lanes_info,
             }
             my_signal.emit(pb, 100, self.network_info, False)
-        except:
+        except Exception as e:
             my_signal.emit(pb, 101, {}, True)
+            print(e)
 
 
     def create_network(self, tess_lane_types):
