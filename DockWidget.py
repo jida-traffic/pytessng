@@ -35,7 +35,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("0.5", "0.1", "1", "5", "10", "20"))
+        self.xodrStep.addItems(( "20", "0.5", "0.1", "1", "5", "10"))
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
         self.pb.setRange(0, 100)  # 进度对话框的范围设定
