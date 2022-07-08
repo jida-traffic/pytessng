@@ -159,6 +159,6 @@ class Ui_TESS_API_EXAMPLEClass(object):
             self.pb.setVisible(False)
             # 导入完成后，部分窗体展示
             self.text_label_1.setVisible(True)
-            self.txtMessage1.setText(f"{str(network_info)}")
+            # self.txtMessage1.setText(f"{str(network_info)}")
             self.groupBox_2.setVisible(True)
             self.btnOpenNet.setEnabled(True)

@@ -6,6 +6,17 @@ from PySide2.QtCore import QPointF
 from Tessng import m2p, tngIFace
 from utils.config import *
 
+# -*- coding: utf-8 -*-
+
+import os
+from pathlib import Path
+import sys
+
+from PySide2.QtCore import *
+from PySide2.QtGui import *
+from PySide2.QtWidgets import *
+
+from Tessng import *
 
 def get_section_childs(section_info, lengths, direction):
     # 分为左右车道，同时过滤tess规则下不同的车道类型
@@ -15,7 +26,7 @@ def get_section_childs(section_info, lengths, direction):
     else:
         lane_ids = [lane_id for lane_id in section_info['lanes'].keys() if
                     lane_id < 0 and lane_id in section_info["tess_lane_ids"]]
-    # TODO 路段遍历，获取link段，处理异常点
+    # TODO 路段遍历，获取link段，处理异常点 612 路段-2车道宽度异常
     point_infos = []
     # 查找连接段
     for index in range(len(lengths)):
@@ -60,20 +71,22 @@ def get_section_childs(section_info, lengths, direction):
                     {
                         'start': start_index,
                         'end': index,
-                        'point': copy.copy(child_point)
+                        'lanes': set(child_point[0]['lanes'].keys()) & set(child_point[0]['lanes'].keys()),
                     }
                 )
                 child_point = []
             else:
                 continue
 
+    # 把最后一个存在的点序列导入, 最后一个应该以末尾点为准,但是如果此处包含了首&尾，应该取数据量的交集
+    # 这样可能会丢失部分路段，所以在建立连接段时，必须确保 from_lane, to_lane 均存在
     childs.append(
         {
             'start': start_index,
             'end': len(lengths) - 1,
-            'point': copy.copy([child_point[-1] for _ in child_point])
+            'lanes': set(child_point[0]['lanes'].keys()) & set(child_point[0]['lanes'].keys()) #  copy.copy([child_point[-1] for _ in child_point]) # 不需要放列表
         }
-    )  # 把最后一个存在的点序列导入, 最后一个应该以末尾点为准
+    )
 
     # lengths 只是断点序列，标记着与起始点的距离,反向用了同样的lengths
     # 得到link的列表,因为lane的点坐标与方向有关，所以此时的child已经根据方向排序
@@ -269,9 +282,8 @@ class Network:
                 "lanes_info": lanes_info,
             }
             my_signal.emit(pb, 100, self.network_info, False)
-        except Exception as e:
-            my_signal.emit(pb, 101, {}, True)
-            print(e)
+        except:
+            my_signal.emit(pb, 0, {}, True)
 
 
     def create_network(self, tess_lane_types):
@@ -282,13 +294,14 @@ class Network:
         # TODO 无法实时设置场景大小
         if self.xy_limit:
             netiface.setSceneSize(abs(self.xy_limit[0] - self.xy_limit[1]),
-                                  abs(self.xy_limit[2] - self.xy_limit[3]))  # 华为路网
+                                  abs(self.xy_limit[2] - self.xy_limit[3]))
 
         # 如果后续tess在同一路段中存在不同类型的车道，tess_lane_types需要做成列表嵌套
         error_junction = []
         # for i in range(0, 2000):
-        #     if i not in [360, 361] and i in self.network_info["roads_info"].keys():
+        #     if i not in [161,162] and i in self.network_info["roads_info"].keys():
         #         del self.network_info["roads_info"][i]
+        # del self.network_info["roads_info"][337]
 
 
         # 不同类型的车道建立不同的路段
@@ -325,7 +338,6 @@ class Network:
             # 记录交叉口
             self.convert_junction(roads_info, lanes_info, connector_mapping, road_mapping, tess_lane_type,
                                   error_junction)
-            print(error_junction)
             # 实现所有的连接关系
             self.create_connects(netiface, connector_mapping)
         return error_junction
@@ -360,7 +372,7 @@ class Network:
                         child = childs[index]
                         # 步长过大，可能会导致在分段时 child 只包含了一个点
                         start_index, end_index = child['start'], child['end'] + 1
-                        land_ids = sorted(child["point"][0]['lanes'].keys(), reverse=reverse)
+                        land_ids = sorted(child['lanes'], reverse=reverse) #列表内多点的的数据是一样的，取第一个即可
                         lCenterLinePoint = self.get_coo_list([point["position"] for point in points][start_index:end_index])
                         lanesWithPoints = [
                             {
@@ -376,10 +388,11 @@ class Network:
                             }
                             for lane_id in land_ids
                         ]
-                        link_obj = netiface.createLinkWithLanePoints(lCenterLinePoint, lanesWithPoints,
+                        link_obj = netiface.createLink3DWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                      f"{road_id}_{section_id}_{index}_{direction}")
-                        print(lCenterLinePoint)
-                        print(lanesWithPoints)
+
+                        # if road_id in [161,162]:
+                        #     print(lanesWithPoints)
                         if link_obj:
                             section_links.append(
                                 {
@@ -424,20 +437,10 @@ class Network:
                     from_section = road_mapping[from_road_id].section(from_section_id)
                     from_link = from_section and from_section.tess_link(from_lane_id, 'from')
                     from_lane = from_section and from_section.tess_lane(from_lane_id, 'from')
-                    if not (from_link and from_lane):
-                        # 如果车道在此处宽度归零，是不会连接到下一车道的
-                        continue
 
                     for successor_id in lane_info["successor_ids"]:
                         is_true, to_road_id, to_section_id, to_lane_id, _ = get_inter(successor_id, roads_info)
                         if not is_true:  # 部分车道的连接关系可能是'2.3.None.-1'，需要清除
-                            continue
-
-                        # if from_road_id == 360 and to_road_id == 361:
-                        #     print(22)
-
-                        if not (from_link and from_lane):
-                            # 如果车道在此处宽度归零，是不会连接到下一车道的
                             continue
 
                         if to_road_id not in link_road_ids:  # 只针对性的创建路段间的连接
@@ -448,13 +451,8 @@ class Network:
                         to_link = to_section and to_section.tess_link(to_lane_id, 'to')
                         to_lane = to_section and to_section.tess_lane(to_lane_id, 'to')
 
-                        # TODO 查找 tolane 为什么为None
+                        # 多种原因会出现这种情况,1.如果车道在此处宽度归零，是不会连接到下一车道的 2.步长过大导致取点时进行了交集
                         if not (from_link and from_lane and to_link and to_lane):
-                            # 如果车道在此处宽度归零，是不会连接到下一车道的
-                            if not (from_link and from_lane and to_link and to_lane):
-                                # 如果车道在此处宽度归零，是不会连接到下一车道的
-                                error_junction.append({"type": "no", "info": [from_link, from_lane, to_link, to_lane]})
-                                continue
                             continue
 
                         if from_lane.actionType() != to_lane.actionType():
@@ -476,8 +474,12 @@ class Network:
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'].append(
                             to_lane.number() + 1)
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'].append(
-                            self.get_coo_list([lane_info['center_vertices'][-1],
-                                               lanes_info[successor_id]['center_vertices'][0]]))  # 注意连接线方向
+                            {
+                                'center': self.get_coo_list([lane_info['center_vertices'][-1], lanes_info[successor_id]['center_vertices'][0]]),
+                                'left': self.get_coo_list([lane_info['left_vertices'][-1], lanes_info[successor_id]['left_vertices'][0]]),
+                                'right': self.get_coo_list([lane_info['right_vertices'][-1], lanes_info[successor_id]['right_vertices'][0]]),
+                            }
+                        )  # 注意连接线方向
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'].append(
                             {
                                 "predecessor_id": predecessor_id,
@@ -515,8 +517,6 @@ class Network:
                             to_lane = to_section and to_section.tess_lane(to_lane_id, 'to')
 
                             if not (from_link and from_lane and to_link and to_lane):
-                                # 如果车道在此处宽度归零，是不会连接到下一车道的
-                                error_junction.append({"type": "no", "info": [from_link, from_lane, to_link, to_lane]})
                                 continue
                             # 检查车道类型是否异常
                             if from_lane.actionType() != to_lane.actionType():
@@ -554,12 +554,25 @@ class Network:
                                 to_lane.number() + 1)
 
                             # 用前后车道的首尾坐标替换原有首尾坐标
-                            connector_vertices = lanes_info[predecessor_id]['center_vertices'][-1:] + \
+                            center_connector_vertices = lanes_info[predecessor_id]['center_vertices'][-1:] + \
                                                  lane_info['center_vertices'][1:-1] + \
                                                  lanes_info[successor_id]['center_vertices'][:1]
+                            left_connector_vertices = lanes_info[predecessor_id]['left_vertices'][-1:] + \
+                                                      lane_info['left_vertices'][1:-1] + \
+                                                      lanes_info[successor_id]['left_vertices'][:1]
+                            right_connector_vertices = lanes_info[predecessor_id]['right_vertices'][-1:] + \
+                                                      lane_info['right_vertices'][1:-1] + \
+                                                      lanes_info[successor_id]['right_vertices'][:1]
+                            connector_vertices = {
+                                    "center": self.get_coo_list(center_connector_vertices),
+                                    "left": self.get_coo_list(left_connector_vertices),
+                                    "right": self.get_coo_list(right_connector_vertices),
+                                }
                             # connector_vertices = lane_info['center_vertices']
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'].append(
-                                self.get_coo_list(connector_vertices))  # 注意连接线方向
+                                connector_vertices
+                            )
+                                # self.get_coo_list(connector_vertices))  # 注意连接线方向
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'].append(
                                 {
                                     "predecessor_id": predecessor_id,
@@ -591,20 +604,17 @@ class Network:
 
             # 源数据建立连接
             if lanesWithPoints3:
-                netiface.createConnectorWithPoints(from_link_id, to_link_id,
+                netiface.createConnector3DWithPoints(from_link_id, to_link_id,
                                                    lFromLaneNumber, lToLaneNumber,
-                                                   lanesWithPoints3, f"{from_link_id}-{to_link_id}-{link_type}")
+                                                   lanesWithPoints3) # , f"{from_link_id}-{to_link_id}-{link_type}")
             # TESS 自动计算，建立连接
             else:
                 netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber)
 
     def get_coo_list(self, vertices):
-        # TODO 路段线与车道线的密度保持一致
         list1 = []
         x_move, y_move = sum(self.xy_limit[:2]) / 2, sum(self.xy_limit[2:]) / 2 if self.xy_limit else (0, 0)
         for index in range(0, len(vertices), 1):
             vertice = vertices[index]
-            if round((vertice[0] - x_move), 4) == -174.4355 or round(m2p((vertice[0] - x_move)/3), 4) == -174.4355:
-                print(1111)
-            list1.append(QPointF(m2p((vertice[0] - x_move)/3), m2p(-(vertice[1] - y_move)/3)))
+            list1.append(QVector3D(m2p((vertice[0] - x_move)), m2p(-(vertice[1] - y_move)), m2p(vertice[2])))
         return list1

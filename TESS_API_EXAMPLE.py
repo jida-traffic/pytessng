@@ -8,6 +8,7 @@ from utils.network_utils import Network
 from PySide2.QtWidgets import *
 from Tessng import *
 from threading import Thread
+from shutil import copyfile
 
 
 class MySignals(QObject):
@@ -58,7 +59,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             # TODO 保存数据--> 清除数据 --> 打开新文件
             if reply == QMessageBox.Yes:
                 # <tess 会更新temp文件，所以选择保存时需要额外处理>，先把tmp文件复制，然后替换,嘴还不要采取这种方式
-                from shutil import copyfile
                 copyfile(temp_file, temp_back_file)
                 iface.netInterface().saveRoadNet()
                 copyfile(temp_back_file, temp_file)
@@ -87,9 +87,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             thread = Thread(target=self.network.convert_network, args=(my_signal.text_print, pb))
             thread.start()
 
-        # TODO 插件的展示与隐藏
-        # tngPlugin().dockWidget.setVisible(False)
-
 
     def showXodr(self, info):
         if not (self.network and self.network.network_info):
@@ -105,6 +102,12 @@ class TESS_API_EXAMPLE(QMainWindow):
         if not tess_lane_types:
             QMessageBox.warning(None, "提示信息", "请至少选择一种车道类型")
             return
+
+        # 打开新底图
+        temp_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001.tmp')
+        iface = tngIFace()
+        iface.netInterface().openNetFle(temp_file)
+
         error_junction = self.network.create_network(tess_lane_types)
         message = "\n".join([str(i) for i in error_junction])
         self.ui.txtMessage2.setText(f"{message}")
