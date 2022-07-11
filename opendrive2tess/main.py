@@ -1,7 +1,7 @@
 from lxml import etree
 from opendrive2tess.opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
 from opendrive2tess.opendrive2lanelet.opendriveparser.parser import parse_opendrive
-from opendrive2tess.convert_utils import convert_opendrive, convert_roads_info, convert_lanes_info
+from opendrive2tess.utils.convert_utils import convert_opendrive, convert_roads_info, convert_lanes_info
 
 
 def main(xodr_file, step_length, filter_types=None, my_signal=None, pb=None):
