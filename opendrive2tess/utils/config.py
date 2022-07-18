@@ -21,6 +21,11 @@ WIDTH_LIMIT = {
     # 'biking': {},
 }
 
+# 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
+point_require = 2
+POINT_REQUIRE = max(2, point_require)
+
+
 UNITY_LANE_MAPPING = {
     "Driving": ["driving", "stop", "parking", "entry", "exit", "offRamp", "onRamp", "connectingRamp", ],
     "None": ["none"],
@@ -33,12 +38,3 @@ UNITY_LANE_MAPPING = {
     "Other": ["bidirectional", "special1", "special2", "special3", "roadWorks", "tram", "rail", ]
 }
 
-# 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
-point_require = 2
-POINT_REQUIRE = max(2, point_require)
-
-KAFKA_HOST = 'tengxunyun'
-KAFKA_PORT = 9092
-TOPIC = 'tess'
-
-WEB_PORT = 8888

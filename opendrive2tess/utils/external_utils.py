@@ -7,7 +7,6 @@ import base64
 
 # 此功能用于与外界交互，可不使用
 from kafka import KafkaProducer
-from opendrive2tess.utils.config import *
 from threading import Thread
 from multiprocessing import Process
 from multiprocessing import Queue
@@ -39,30 +38,31 @@ class MyProcess:
             cls._instance = super(MyProcess, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, config):
         self.my_queue = Queue(maxsize=100)
         # 子进程创建时，会将主进程的所有元素深拷贝一份，所以在子进程中，使用的是自己的生产者
         # 采用安全的队列，将队列传入进程中
-        p = Process(target=self.post, args=(self.my_queue,))
+        KAFKA_HOST, KAFKA_PORT, topic = config.KAFKA_HOST, config.KAFKA_PORT, config.topic
+        p = Process(target=self.post, args=(self.my_queue, KAFKA_HOST, KAFKA_PORT, topic))
         p.start()
 
     # websocket
-    def post(self, my_queue):
+    def post(self, my_queue, *args):
         # TODO 主进程初始化子进程时启动,此(子)进程里保存了users，外部看不到,需要采用队列的方式
         # 子进程有一个websocket，用来与前端进行通信
         # producer 和 users 列表都在子进程初始化，不会影响主进程
-        self.web = WebSocketUtil(port=WEB_PORT)
-        producer = Producer(KAFKA_HOST, KAFKA_PORT, TOPIC)
-        self.web.start_socket_server()
+        producer = Producer(*args)
+        # self.web = WebSocketUtil(port=WEB_PORT)
+        # self.web.start_socket_server()
         while True:
             data = my_queue.get()
             # print(len(users))
             producer.send(data)
             # 判断是否有客户端连接，有才推送消息
-            for user in copy.copy(users):
-                self.web.send_msg(user, bytes(json.dumps(data), encoding="utf-8"))
-                print(f"{user} send ok")
-            print(f"send done")
+            # for user in copy.copy(users):
+            #     self.web.send_msg(user, bytes(json.dumps(data), encoding="utf-8"))
+            #     print(f"{user} send ok")
+            # print(f"send done")
 
 
 # 汽车数据转换
@@ -91,6 +91,7 @@ def get_vehi_info(simuiface):
         try:
             if obj:
                 be_called_function = getattr(obj, attr)
+                # import pdb;pdb.set_trace()
                 if callable(be_called_function):
                     return be_called_function()
                 else:
@@ -205,3 +206,13 @@ class WebSocketUtil(object):
     def start_socket_server(self):
         # 启线程循环等待客户端建立连接
         Thread(target=self.wait_socket_connect).start()
+        # # 消息推送
+        # while True:
+        #     # 判断是否有客户端连接，有才推送消息
+        #     if len(users):
+        #         send_users = copy.copy(users)
+        #         # 自定义的消息内容
+        #         data = summary()
+        #         # 遍历
+        #         for user in send_users:
+        #             self.send_msg(user, bytes(json.dumps(data), encoding="utf-8"))

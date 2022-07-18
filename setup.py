@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
   name="opendrive2tess",
-  version="0.0.2",
+  version="0.0.5",
   author="Author",
   author_email="17315487709@163.com",
   description="convert opendrive info to create tess network",
@@ -14,11 +14,11 @@ setuptools.setup(
   url="",
   install_requires=[
     'matplotlib',
-    'lxml==4.9.1',
-    'matlab==0.1',
-    'numpy==1.19.5',
-    'scipy==1.5.4',
-    'commonroad.io==2020.2',
+    'lxml>=4.9.1',
+    'matlab>=0.1',
+    'numpy>=1.19.5',
+    'scipy>=1.5.4',
+    'commonroad.io>=2020.2',
   ],
   python_requires='>=3.6, <=3.9',
   packages=setuptools.find_packages(),

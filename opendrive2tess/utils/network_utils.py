@@ -213,12 +213,10 @@ class Road:
 
 
 class Network:
-    def __init__(self, filepath, filter_types=None, step_length=None, window=None):
+    def __init__(self, filepath, step_length=None, filter_types=None, window=None):
         self.window = window
         self.filepath = filepath
         self.step_length = step_length or 0.5
-        # 定义静态文件及所处位置文件夹
-        # filter_types = ["driving", "onRamp", "offRamp", "exit", "entry"]  # 一般用于机动车行驶的车道
         self.filter_types = filter_types
         self.xy_limit = None  # x1,x2,y1,y2
         self.xy_move = (0, 0)
@@ -227,26 +225,11 @@ class Network:
     def convert_network(self, my_signal, pb):
         try:
             from opendrive2tess.main import main
-            header_info, roads_info, lanes_info = main(self.filepath, self.filter_types, self.step_length, my_signal, pb)
+            header_info, roads_info, lanes_info = main(self.filepath, self.step_length, self.filter_types, my_signal, pb)
 
             # unity 信息提取
-            # from utils.unity.unity_utils import convert_unity
-            # convert_unity(roads_info, lanes_info)
-
-            # 移除部分路段，重设坐标范围
-            remove_road_ids = set()
-            for road_id, road_info in roads_info.items():
-                for section_id, points in road_info['road_points'].items():
-                    for point in points['right_points']:
-                        position = point['position']
-                        if m2p(position[1]) < 3000 or m2p(position[1]) > 7000:
-                            remove_road_ids.add(road_id)
-
-            for i in remove_road_ids:
-                if i in roads_info.keys():
-                    del roads_info[i]
-
-
+            # from opendrive2tess.utils.unity_utils import convert_unity
+            # unity_info = convert_unity(roads_info, lanes_info)
 
             for road_id, road_info in roads_info.items():
                 if road_info['junction_id'] == None:
@@ -262,8 +245,9 @@ class Network:
                             self.xy_limit[1] = max(self.xy_limit[1], position[0])
                             self.xy_limit[2] = min(self.xy_limit[2], position[1])
                             self.xy_limit[3] = max(self.xy_limit[3], position[1])
-                self.xy_move = (sum(self.xy_limit[:2]) / 2, sum(self.xy_limit[2:]) / 2) if self.xy_limit else (0, 0)
-
+            self.xy_move = (sum(self.xy_limit[:2]) / 2, sum(self.xy_limit[2:]) / 2) if self.xy_limit else (0, 0)
+            print(f"路网移动参数: {self.xy_move}")
+                
             for lane_name, lane_info in lanes_info.items():
                 if not lane_info:  # 此车道只是文件中某车道的前置或者后置车道，仅仅被提及，是空信息，跳过
                     continue
@@ -285,9 +269,9 @@ class Network:
                 "lanes_info": lanes_info,
             }
             my_signal.emit(pb, 100, self.network_info, False)
-            json.dump(self.network_info, open("test.json", 'w'))
-        except:
+        except Exception as e:
             my_signal.emit(pb, 0, {}, True)
+            print(e)
 
 
     def create_network(self, tess_lane_types):
@@ -613,7 +597,10 @@ class Network:
     def get_coo_list(self, vertices):
         x_move, y_move = self.xy_move
         temp_list = []
-        for index in range(0, len(vertices), 1):
-            vertice = vertices[index]
-            temp_list.append(QVector3D(m2p((vertice[0] - x_move)), m2p(-(vertice[1] - y_move)), m2p(vertice[2])))
+        try:
+            for index in range(0, len(vertices)):
+                vertice = vertices[index]
+                temp_list.append(QVector3D(m2p((vertice[0] - x_move)), m2p(-(vertice[1] - y_move)), m2p(vertice[2])))
+        except Exception as e:
+            print(e)
         return temp_list

@@ -35,12 +35,15 @@ def calc_width(l1, l2):
     return width_list
 
 
-def convert_roads_info(opendrive, filter_types, step_length):  # step_length需要对第三方包进行修改
+def convert_roads_info(opendrive, step_length, filter_types):  # step_length需要对第三方包进行修改
     roads_info = {}
     for road in opendrive.roads:
         road_length = road.length
         planView = road.planView  # 每条道路有且仅有一条参考线，参考线通常在道路中心，但也可能有侧向偏移。
         road_points = {}
+
+        # 计算高程信息
+        elevations = [elevation[0] for elevation in road.elevationProfile.elevations]
         # 为了适配tess，将road按照section切分为多个link
         for section in road.lanes.lane_sections:
             right_points = []
@@ -64,16 +67,18 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
                     left_length = 0
                 right_position, right_angle = planView.calc_geometry(right_length)
                 left_position, left_angle = planView.calc_geometry(left_length)
+                # 目前认为左右来向在同一断面的高程一致
+                elevation_result = calc_elevation(right_length, elevations)
                 right_points.append(
                     {
-                        "position": list(right_position),
+                        "position": list(right_position) + [elevation_result],
                         'angle': right_angle,
                         "offset": right_length,  # 记录在本section内此点的移动位置
                     }
                 )
                 left_points.append(
                     {
-                        "position": list(left_position),
+                        "position": list(left_position) + [elevation_result],
                         'angle': left_angle,
                         "offset": left_length,
                     }
@@ -92,6 +97,7 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
                 'lengths': lengths,
                 "left_offsets": left_offsets,
                 "right_offsets": right_offsets,
+                "elevations": [],
             }
 
         # 计算每一段section 的高程信息
@@ -102,7 +108,8 @@ def convert_roads_info(opendrive, filter_types, step_length):  # step_length需�
             ePos = section_info["ePos"]
             section_info["start_high"] = calc_elevation(sPos, elevations)
             section_info["end_high"] = calc_elevation(ePos, elevations)
-
+            for index, length in enumerate(section_info["lengths"]):
+                section_info["elevations"].append(calc_elevation(length, elevations))
 
         sections_mapping = convert_section_info(road.lanes.lane_sections, filter_types)
         # elevations [(e1),(e2),(e3)]  start_pos, road.elevationProfile.elevations[0][0].polynomial_coefficients
@@ -153,6 +160,15 @@ def convert_lanes_info(opendrive, scenario, roads_info):
         # 计算车道宽度
         center_vertices, left_vertices, right_vertices = lane.center_vertices.tolist(), lane.left_vertices.tolist(), lane.right_vertices.tolist()
         widths = calc_width(left_vertices, right_vertices)
+        
+        # 添加高程
+        if lane_id > 0:
+            elevtions = [i["position"][2] for i in roads_info[road_id]["road_points"][section_id]['left_points']]
+        else:
+            elevtions = [i["position"][2] for i in roads_info[road_id]["road_points"][section_id]['right_points']]
+        center_vertices = [list(center_vertices[index]) + [elevtions[index]] for index in range(len(elevtions))]
+        left_vertices = [list(left_vertices[index]) + [elevtions[index]] for index in range(len(elevtions))]
+        right_vertices = [list(right_vertices[index]) + [elevtions[index]] for index in range(len(elevtions))]
 
         # lane.lanelet_id 自定义的车道编号,取消转换后，指的就是原始编号
         lanes_info[lane.lanelet_id] = {
