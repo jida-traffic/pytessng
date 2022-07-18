@@ -6,6 +6,9 @@ from opendrive2tess.utils.config import *
 # 使用此功能必须依赖 TESS 安装包
 from PySide2.QtGui import *
 from Tessng import *
+from lxml import etree
+from opendrive2tess.opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
+from opendrive2tess.utils.convert_utils import convert_opendrive, convert_roads_info, convert_lanes_info
 
 
 def get_section_childs(section_info, lengths, direction):
@@ -213,24 +216,45 @@ class Road:
 
 
 class Network:
-    def __init__(self, filepath, step_length=None, filter_types=None, window=None):
-        self.window = window
-        self.filepath = filepath
-        self.step_length = step_length or 0.5
-        self.filter_types = filter_types
-        self.xy_limit = None  # x1,x2,y1,y2
-        self.xy_move = (0, 0)
+    def __init__(self, opendrive):
+        self.opendrive = opendrive
         self.network_info = None
+        self.xy_move = (0, 0)
+        self.size = (300, 600)
 
-    def convert_network(self, my_signal, pb):
+    def extract_network_info(self, step=None, filters=None, my_signal=None, pb=None):
+        step = step or 1
+        filters = filters or Lane.laneTypes
+        opendrive = self.opendrive
+        # 头信息
+        header_info = {
+            "date": opendrive.header.date,
+            "geo_reference": opendrive.header.geo_reference,
+        }
+
+        # 参考线信息解析
+        roads_info = convert_roads_info(opendrive, step, filters)
+
+        # 车道点位序列不再独立计算，采用 road info 中参考线的点位
+        # 车道信息解析，这一步最消耗时间，允许传入进度条
+        scenario = convert_opendrive(opendrive, filters, roads_info, my_signal=my_signal, pb=pb)
+        lanes_info = convert_lanes_info(opendrive, scenario, roads_info)
+
+        network_info = {
+            "header_info": header_info,
+            "roads_info": roads_info,
+            "lanes_info": lanes_info,
+        }
+        return network_info
+
+
+    def convert_network(self, step=None, filters=None, my_signal=None, pb=None):
         try:
-            from opendrive2tess.main import main
-            header_info, roads_info, lanes_info = main(self.filepath, self.step_length, self.filter_types, my_signal, pb)
+            self.network_info = self.extract_network_info(step, filters, my_signal, pb)
+            roads_info = self.network_info["roads_info"]
+            lanes_info = self.network_info["lanes_info"]
 
-            # unity 信息提取
-            # from opendrive2tess.utils.unity_utils import convert_unity
-            # unity_info = convert_unity(roads_info, lanes_info)
-
+            xy_limit = None
             for road_id, road_info in roads_info.items():
                 if road_info['junction_id'] == None:
                     road_info['junction_id'] = -1
@@ -238,16 +262,17 @@ class Network:
                 for section_id, points in road_info['road_points'].items():
                     for point in points['right_points']:
                         position = point['position']
-                        if self.xy_limit is None:
-                            self.xy_limit = [position[0], position[0], position[1], position[1]]
+                        if xy_limit is None:
+                            xy_limit = [position[0], position[0], position[1], position[1]]
                         else:
-                            self.xy_limit[0] = min(self.xy_limit[0], position[0])
-                            self.xy_limit[1] = max(self.xy_limit[1], position[0])
-                            self.xy_limit[2] = min(self.xy_limit[2], position[1])
-                            self.xy_limit[3] = max(self.xy_limit[3], position[1])
-            self.xy_move = (sum(self.xy_limit[:2]) / 2, sum(self.xy_limit[2:]) / 2) if self.xy_limit else (0, 0)
+                            xy_limit[0] = min(xy_limit[0], position[0])
+                            xy_limit[1] = max(xy_limit[1], position[0])
+                            xy_limit[2] = min(xy_limit[2], position[1])
+                            xy_limit[3] = max(xy_limit[3], position[1])
+            self.xy_move = (sum(xy_limit[:2]) / 2, sum(xy_limit[2:]) / 2) if xy_limit else (0, 0)
+            self.size = (abs(xy_limit[0] - xy_limit[1]), abs(xy_limit[2] - xy_limit[3]))
             print(f"路网移动参数: {self.xy_move}")
-                
+
             for lane_name, lane_info in lanes_info.items():
                 if not lane_info:  # 此车道只是文件中某车道的前置或者后置车道，仅仅被提及，是空信息，跳过
                     continue
@@ -263,11 +288,6 @@ class Network:
                 roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
                 roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
 
-            self.network_info = {
-                "header_info": header_info,
-                "roads_info": roads_info,
-                "lanes_info": lanes_info,
-            }
             my_signal.emit(pb, 100, self.network_info, False)
         except Exception as e:
             my_signal.emit(pb, 0, {}, True)
@@ -279,10 +299,8 @@ class Network:
         iface = tngIFace()
         # 代表TESS NG的路网子接口
         netiface = iface.netInterface()
-        # TODO 无法实时设置场景大小
-        if self.xy_limit:
-            netiface.setSceneSize(abs(self.xy_limit[0] - self.xy_limit[1]),
-                                  abs(self.xy_limit[2] - self.xy_limit[3]))
+        # 设置场景显示区域
+        netiface.setSceneSize(*self.size)
 
         # 如果后续tess在同一路段中存在不同类型的车道，tess_lane_types需要做成列表嵌套
         error_junction = []
@@ -374,8 +392,6 @@ class Network:
                         link_obj = netiface.createLink3DWithLanePoints(lCenterLinePoint, lanesWithPoints,
                                                                      f"{road_id}_{section_id}_{index}_{direction}")
 
-                        # if road_id in [161,162]:
-                        #     print(lanesWithPoints)
                         if link_obj:
                             section_links.append(
                                 {
@@ -385,7 +401,6 @@ class Network:
                             )
 
                     tess_section.__setattr__(f"{direction}_link", section_links)
-                    # tess_section.left_link = section_links
                     connect_childs(getattr(tess_section, f"{direction}_link"), connector_mapping)
 
             # 往前进一位

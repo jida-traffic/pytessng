@@ -17,7 +17,8 @@ def deviation_point(coo1, coo2, width, right=False, is_last=False):
 
 
 # TODO 移除部分车道
-filter_ids = [3,6,5,4,80,67,82,83,748,749,2,668,723,391,116,668]
+# filter_ids = [3,6,5,4,80,67,82,83,748,749,2,668,723,391,116,668]
+filter_ids = []
 border_line_width = 0.2
 center_line_width = 0.3
 def convert_unity(roads_info, lanes_info):

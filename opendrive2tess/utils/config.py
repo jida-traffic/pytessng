@@ -37,4 +37,3 @@ UNITY_LANE_MAPPING = {
     "YellowLine": [],
     "Other": ["bidirectional", "special1", "special2", "special3", "roadWorks", "tram", "rail", ]
 }
-
