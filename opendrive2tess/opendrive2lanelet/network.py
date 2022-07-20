@@ -11,7 +11,7 @@ from opendrive2tess.opendrive2lanelet.opendriveparser.elements.opendrive import 
 from opendrive2tess.opendrive2lanelet.utils import encode_road_section_lane_width_id
 from opendrive2tess.opendrive2lanelet.conversion_lanelet_network import ConversionLaneletNetwork
 from opendrive2tess.opendrive2lanelet.converter import OpenDriveConverter
-
+from opendrive2tess import send_signal
 
 __author__ = "Benjamin Orthen, Stefan Urban"
 __copyright__ = "TUM Cyber-Physical Systems Group"
@@ -70,7 +70,7 @@ class Network:
                 self._planes.extend(parametric_lane_groups)
 
     def export_lanelet_network(
-            self, filter_types: list = None, roads_info=None, my_signal=None, pb=None
+            self, filter_types: list = None, roads_info=None, context=None
     ) -> "ConversionLaneletNetwork":
         """Export network as lanelet network.
 
@@ -103,13 +103,14 @@ class Network:
 
             lanelet_network.add_lanelet(lanelet)
             progress += 1
-            if my_signal and pb:
-                my_signal.emit(pb, int(progress / len(self._planes) * 80), {}, False)
+            send_signal(context, int(progress / len(self._planes) * 80))
+            # if my_signal and pb:
+            #     my_signal.emit(pb, int(progress / len(self._planes) * 80), {}, False)
 
         return lanelet_network
 
     def export_commonroad_scenario(
-        self, dt: float = 0.1, benchmark_id=None, filter_types=None, roads_info=None, my_signal=None, pb=None
+        self, dt: float = 0.1, benchmark_id=None, filter_types=None, roads_info=None, context=None
     ):
         """Export a full CommonRoad scenario
 
@@ -132,8 +133,7 @@ class Network:
                 if isinstance(filter_types, list)
                 else ["driving", "onRamp", "offRamp", "exit", "entry"],
                 roads_info=roads_info,
-                my_signal=my_signal,
-                pb=pb
+                context=context,
             )
         )
 

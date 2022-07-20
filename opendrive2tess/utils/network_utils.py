@@ -9,6 +9,7 @@ from Tessng import *
 from lxml import etree
 from opendrive2tess.opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
 from opendrive2tess.utils.convert_utils import convert_opendrive, convert_roads_info, convert_lanes_info
+from opendrive2tess import send_signal
 
 
 def get_section_childs(section_info, lengths, direction):
@@ -222,7 +223,7 @@ class Network:
         self.xy_move = (0, 0)
         self.size = (300, 600)
 
-    def extract_network_info(self, step=None, filters=None, my_signal=None, pb=None):
+    def extract_network_info(self, step=None, filters=None, context=None):
         step = step or 1
         filters = filters or Lane.laneTypes
         opendrive = self.opendrive
@@ -237,7 +238,7 @@ class Network:
 
         # 车道点位序列不再独立计算，采用 road info 中参考线的点位
         # 车道信息解析，这一步最消耗时间，允许传入进度条
-        scenario = convert_opendrive(opendrive, filters, roads_info, my_signal=my_signal, pb=pb)
+        scenario = convert_opendrive(opendrive, filters, roads_info, context)
         lanes_info = convert_lanes_info(opendrive, scenario, roads_info)
 
         network_info = {
@@ -248,9 +249,9 @@ class Network:
         return network_info
 
 
-    def convert_network(self, step=None, filters=None, my_signal=None, pb=None):
+    def convert_network(self, step=None, filters=None, context=None):
         try:
-            self.network_info = self.extract_network_info(step, filters, my_signal, pb)
+            self.network_info = self.extract_network_info(step, filters, context)
             roads_info = self.network_info["roads_info"]
             lanes_info = self.network_info["lanes_info"]
 
@@ -288,17 +289,17 @@ class Network:
                 roads_info[road_id]['sections'][section_id].setdefault('lanes', {})
                 roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
 
-            my_signal.emit(pb, 100, self.network_info, False)
+            send_signal(context, 100, network_info=self.network_info)
+            # my_signal.emit(pb, 100, self.network_info, False)
         except Exception as e:
-            my_signal.emit(pb, 0, {}, True)
+            send_signal(context, 0, error=True)
+            # my_signal.emit(pb, 0, {}, True)
             print(e)
 
 
-    def create_network(self, tess_lane_types):
-        # 代表TESS NG的接口
-        iface = tngIFace()
-        # 代表TESS NG的路网子接口
-        netiface = iface.netInterface()
+    def create_network(self, tess_lane_types, netiface=None):
+        if not netiface:
+            netiface = tngIFace().netInterface()
         # 设置场景显示区域
         netiface.setSceneSize(*self.size)
 

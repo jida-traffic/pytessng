@@ -8,10 +8,10 @@ from opendrive2tess.opendrive2lanelet.opendriveparser.elements.opendrive import 
 from opendrive2tess.opendrive2lanelet.network import Network
 
 
-def convert_opendrive(opendrive: OpenDrive, filter_types: list, roads_info, my_signal=None, pb=None) -> Scenario:
+def convert_opendrive(opendrive: OpenDrive, filter_types: list, roads_info, context=None) -> Scenario:
     road_network = Network()
     road_network.load_opendrive(opendrive)
-    return road_network.export_commonroad_scenario(filter_types=filter_types, roads_info=roads_info, my_signal=my_signal, pb=pb)
+    return road_network.export_commonroad_scenario(filter_types=filter_types, roads_info=roads_info, context=context)
 
 
 def calc_elevation(pos, elevations):

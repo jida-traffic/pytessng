@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
   name="opendrive2tess",
-  version="0.0.5",
+  version="0.0.8",
   author="Author",
   author_email="17315487709@163.com",
   description="convert opendrive info to create tess network",
