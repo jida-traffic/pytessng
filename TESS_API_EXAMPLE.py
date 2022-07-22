@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from DockWidget import *
 from PySide2.QtWidgets import QFileDialog, QMessageBox
-from utils.network_utils import Network
+from opendrive2tess.main import main as TessNetwork
 from PySide2.QtWidgets import *
 from Tessng import *
 from threading import Thread
@@ -16,6 +16,7 @@ class MySignals(QObject):
     # 调用 emit方法发信号时，传入参数必须是这里指定的参数类型
     # 此处也可分开写两个函数，一个是文本框输出的，一个是给进度条赋值的
     text_print = Signal(QProgressBar, int, dict, bool)
+
 
 class TESS_API_EXAMPLE(QMainWindow):
     def __init__(self, parent=None):
@@ -40,19 +41,19 @@ class TESS_API_EXAMPLE(QMainWindow):
         # options = QFileDialog.Options(0)
         # netFilePath, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, custSuffix, selectedFilter, options)
         xodrSuffix = "OpenDrive Files (*.xodr)"
-        tessSuffix = "Tess Files (*.tess)"
         dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
         temp_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001.tmp')
         temp_back_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001_back.tmp')
 
         iface = tngIFace()
+        netiface = iface.netInterface()
         if not iface:
             return
         if iface.simuInterface().isRunning():
             QMessageBox.warning(None, "提示信息", "请先停止仿真，再打开路网")
             return
 
-        count = iface.netInterface().linkCount()
+        count = netiface.linkCount()
         if count:
             # 关闭窗口时弹出确认消息
             reply = QMessageBox.question(self, '提示信息', '是否保存数据', QMessageBox.Yes, QMessageBox.No)
@@ -60,9 +61,9 @@ class TESS_API_EXAMPLE(QMainWindow):
             if reply == QMessageBox.Yes:
                 # <tess 会更新temp文件，所以选择保存时需要额外处理>，先把tmp文件复制，然后替换,嘴还不要采取这种方式
                 copyfile(temp_file, temp_back_file)
-                iface.netInterface().saveRoadNet()
+                netiface.saveRoadNet()
                 copyfile(temp_back_file, temp_file)
-            iface.netInterface().openNetFle(temp_file)
+            netiface.openNetFle(temp_file)
 
         # custSuffix = "TESSNG Files (*.tess);;TESSNG Files (*.backup);;OpenDrive Files (*.xodr)"
         netFilePath, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, xodrSuffix)
@@ -77,14 +78,18 @@ class TESS_API_EXAMPLE(QMainWindow):
             my_signal = MySignals()
             pb = self.ui.pb
 
-            step = float(self.ui.xodrStep.currentText())
-            self.network = Network(netFilePath, step_length=step, window=self.ui)
+            step = float(self.ui.xodrStep.currentText().split(" ")[0])
+            self.network = TessNetwork(netFilePath)
 
             # TODO 添加进度条--主窗口
             # 主线程连接信号
             my_signal.text_print.connect(self.ui.change_progress)
             # 启动子线程
-            thread = Thread(target=self.network.convert_network, args=(my_signal.text_print, pb))
+            context = {
+                "signal": my_signal.text_print,
+                "pb": pb
+            }
+            thread = Thread(target=self.network.convert_network, args=(step, None, context))
             thread.start()
 
 
@@ -94,7 +99,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             return
 
         # 代表TESS NG的接口
-        step = float(self.ui.xodrStep.currentText())
         tess_lane_types = []
         for xodrCk in self.ui.xodrCks:
             if xodrCk.checkState() == QtCore.Qt.CheckState.Checked:
@@ -106,14 +110,16 @@ class TESS_API_EXAMPLE(QMainWindow):
         # 打开新底图
         temp_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001.tmp')
         iface = tngIFace()
-        iface.netInterface().openNetFle(temp_file)
-
-        error_junction = self.network.create_network(tess_lane_types)
+        netiface = iface.netInterface()
+        netiface.openNetFle(temp_file)
+        error_junction = self.network.create_network(tess_lane_types, netiface)
         message = "\n".join([str(i) for i in error_junction])
+
         self.ui.txtMessage2.setText(f"{message}")
-        if error_junction:
-            self.ui.text_label_2.setVisible(True)
-            self.ui.txtMessage2.setVisible(True)
+        is_show = bool(error_junction)
+        self.ui.text_label_2.setVisible(is_show)
+        self.ui.txtMessage2.setVisible(is_show)
+
         QMessageBox.warning(None, "仿真提醒", "如需仿真, 请保存为tess文件后重新打开")
 
 

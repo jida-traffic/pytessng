@@ -26,7 +26,6 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout.setObjectName(u"verticalLayout")
 
-
         # 文件选择框
         self.groupBox_1 = QGroupBox(self.centralWidget)
         self.groupBox_1.setObjectName(u"groupBox_1")
@@ -35,7 +34,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(( "20", "0.5", "0.1", "1", "5", "10"))
+        self.xodrStep.addItems(("0.5 m", "0.1 m", "1.0 m", "5.0 m", "10.0 m"))
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
         self.pb.setRange(0, 100)  # 进度对话框的范围设定
@@ -91,7 +90,13 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnShowXodr.setObjectName(u"btnShowXodr")
 
         xodr_label3 = QLabel()
-        xodr_label3.setText(f"车道转换说明:\n机动车道:\n{'~0.2m:'.ljust(10)} 不解析\n{'0.2m~3m:'.ljust(10)} 视为连接段\n{'3m~:'.ljust(10)} 正常车道\n")
+
+        from opendrive2tess.utils.config import WIDTH_LIMIT
+        split_limit = WIDTH_LIMIT['机动车道']['split']
+        join_limit = WIDTH_LIMIT['机动车道']['join']
+        # 中文字符宽度是英文字符的两倍
+        xodr_label3.setText(
+            f"车道转换说明:\n机动车道:\n{f'小于 {join_limit}m'.ljust(12)}:不解析\n{f'{join_limit}m 至 {split_limit}m'.ljust(13)}:视为连接段\n{f'大于 {split_limit}m'.ljust(12)}:正常车道\n")
 
         self.verticalLayout_4.addWidget(xodr_label2)
         self.verticalLayout_4.addWidget(self.xodrCk1)
@@ -109,10 +114,9 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.groupBox_2.setVisible(False)  # 创建选择框
         self.text_label_1.setVisible(False)
         self.text_label_2.setVisible(False)
-        self.txtMessage1.setVisible(True) # error 信息栏
-        self.txtMessage2.setVisible(False) # error 信息栏
+        self.txtMessage1.setVisible(True)  # error 信息栏
+        self.txtMessage2.setVisible(False)  # error 信息栏
         # xodr 控件结束
-
 
         TESS_API_EXAMPLEClass.setCentralWidget(self.centralWidget)
         self.menuBar = QMenuBar(TESS_API_EXAMPLEClass)
@@ -129,10 +133,12 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.retranslateUi(TESS_API_EXAMPLEClass)
 
         QMetaObject.connectSlotsByName(TESS_API_EXAMPLEClass)
+
     # setupUi
 
     def retranslateUi(self, TESS_API_EXAMPLEClass):
-        TESS_API_EXAMPLEClass.setWindowTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"TESS_API_EXAMPLE", None))
+        TESS_API_EXAMPLEClass.setWindowTitle(
+            QCoreApplication.translate("TESS_API_EXAMPLEClass", u"TESS_API_EXAMPLE", None))
         self.btnOpenNet.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u9009\u62e9\u6587\u4ef6", None))
         # self.btnStartSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u542f\u52a8\u4eff\u771f", None))
         # self.btnPauseSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u6682\u505c\u4eff\u771f", None))
@@ -141,7 +147,6 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.groupBox_3.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u4fe1\u606f\u7a97", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u521b\u5efaTESS NG", None))
         self.btnShowXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"开始创建TESS NG路网", None))
-
 
     def change_progress(self, pb, value, network_info=None, error=False):
         if error:
@@ -159,6 +164,13 @@ class Ui_TESS_API_EXAMPLEClass(object):
             self.pb.setVisible(False)
             # 导入完成后，部分窗体展示
             self.text_label_1.setVisible(True)
-            # self.txtMessage1.setText(f"{str(network_info)}")
+            # 提取 network_info 并显示
+            context = "\n".join(
+                [
+                    f"road_id: {road_id}, lanes: {[section['all'] for _, section in sorted(network_info['roads_info'][road_id]['lane_sections'].items(), key=lambda b: b[0])]}"
+                    for road_id, road_info in network_info["roads_info"].items()
+                ]
+            )
+            self.txtMessage1.setText(context)
             self.groupBox_2.setVisible(True)
             self.btnOpenNet.setEnabled(True)
