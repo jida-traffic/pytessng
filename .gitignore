@@ -1,0 +1,5 @@
+# 需要被忽略的提交文件
+/build
+/Cert
+/Data
+/venv

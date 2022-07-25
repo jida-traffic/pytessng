@@ -3,7 +3,7 @@ import random
 from PySide2.QtCore import *
 from Tessng import TessInterface, SimuInterface, PyCustomerSimulator, IVehicle, m2p, tngIFace, tngPlugin
 from Tessng import TESSNG
-from utils.external_utils import get_vehi_info
+from opendrive2tess.utils.external_utils import get_vehi_info
 
 
 class MySimulator(QObject, PyCustomerSimulator):

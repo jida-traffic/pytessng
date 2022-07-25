@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide2.QtWidgets import *
 from MyPlugin import MyPlugin
 from Tessng import *
-from utils.external_utils import MyProcess
+from opendrive2tess.utils.external_utils import MyProcess
 
 
 if __name__ == '__main__':
