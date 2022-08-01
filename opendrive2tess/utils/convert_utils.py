@@ -16,7 +16,7 @@ def convert_opendrive(opendrive: OpenDrive, filter_types: list, roads_info, cont
 
 def calc_elevation(pos, elevations):
     if not elevations:
-        raise
+        return 0  # 无高程元素，默认高度为0
     # 获取相应的 elevation
     for e in elevations:
         if pos >= e.start_pos:

@@ -4,7 +4,7 @@ from opendrive2tess.utils.network_utils import Network
 
 
 def main(xodr_file):
-    with open(xodr_file, "r") as file_in:
+    with open(xodr_file, "r", encoding='utf-8') as file_in:
         root_node = etree.parse(file_in).getroot()
         opendrive = parse_opendrive(root_node)
 

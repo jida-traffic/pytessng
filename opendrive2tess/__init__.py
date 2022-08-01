@@ -6,3 +6,4 @@ def send_signal(context, value, network_info=None, error=False):
     pb = context["pb"]
     network_info = network_info or {}
     signal.emit(pb, value, network_info, error)
+    return

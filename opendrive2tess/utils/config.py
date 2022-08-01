@@ -7,7 +7,7 @@ LANE_TYPE_MAPPING = {
     'entry': '机动车道',
     'exit': '机动车道',
     'connectingRamp': '机动车道',
-    # 'biking': '非机动车道',
+    'biking': '非机动车道',
     # 'sidewalk': '人行道',
 }
 
