@@ -110,6 +110,8 @@ def connect_childs(links, connector_mapping):
         to_link_info = links[index + 1]
         from_link = from_link_info['link']
         to_link = to_link_info['link']
+        if not (from_link and to_link and from_link_info['lane_ids'] and to_link_info['lane_ids']):
+            continue
 
         connect_lanes = set()
         for lane_id in set(from_link_info['lane_ids'] + to_link_info['lane_ids']):
@@ -298,10 +300,8 @@ class Network:
                 roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
 
             send_signal(context, 100, network_info=self.network_info)
-            # my_signal.emit(pb, 100, self.network_info, False)
         except Exception as e:
             send_signal(context, 0, error=True)
-            # my_signal.emit(pb, 0, {}, True)
             print(e)
 
 
@@ -510,6 +510,7 @@ class Network:
             for section_id, section_info in road_info.get('sections', {}).items():
                 # 获取路口的所有连接关系
                 for lane_id, lane_info in section_info["lanes"].items():
+                    # TODO 如果交叉口前后也连向交叉口，此时交叉口路段并未创建，会导致连接被忽略
                     if LANE_TYPE_MAPPING.get(lane_info['type']) != tess_lane_type:
                         continue  # 路段类型匹配失败，跳过
                     for predecessor_id in lane_info['predecessor_ids']:
@@ -608,25 +609,17 @@ class Network:
             lToLaneNumber = link_info['lToLaneNumber']
             lanesWithPoints3 = link_info['lanesWithPoints3']
 
-            types = set(i['junction'] for i in link_info['infos'])
-            if True in types and False in types:
-                link_type = 'all'
-            elif True in types:
-                link_type = 'junction'
-            else:
-                link_type = 'link'
-
             # 源数据建立连接
             if lanesWithPoints3:
                 netiface.createConnector3DWithPoints(from_link_id, to_link_id,
                                                    lFromLaneNumber, lToLaneNumber,
-                                                   lanesWithPoints3) # , f"{from_link_id}-{to_link_id}-{link_type}")
+                                                   lanesWithPoints3, f"{from_link_id}-{to_link_id}")
             # TESS 自动计算，建立连接
             else:
                 netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber)
 
     def get_coo_list(self, vertices):
-        x_move, y_move = self.xy_move
+        x_move, y_move = 0, 0  # self.xy_move
         temp_list = []
         for index in range(0, len(vertices)):
             vertice = vertices[index]

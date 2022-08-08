@@ -1,14 +1,23 @@
 # opendrive —> tess 车道, 不在此映射表中的车道不予显示
 LANE_TYPE_MAPPING = {
     'driving': '机动车道',
-    # 'parking': '机动车道',
     'onRamp': '机动车道',
     'offRamp': '机动车道',
     'entry': '机动车道',
     'exit': '机动车道',
     'connectingRamp': '机动车道',
+
+    # 'shoulder': '应急车道',
+    # 'border': '',
+    # 'stop': '应急车道',
+    # 'none': '',
+    # 'redtricted': '',
+    # 'parking': '',
+    # 'median': '',
+    # 'curb': '',
+
     'biking': '非机动车道',
-    # 'sidewalk': '人行道',
+    'sidewalk': '人行道',
 }
 
 
@@ -16,7 +25,7 @@ LANE_TYPE_MAPPING = {
 WIDTH_LIMIT = {
     '机动车道': {
         'split': 3,  # 作为正常的最窄距离
-        'join': 0.2,  # 被忽略时的最宽距离
+        'join': 0.5,  # 被忽略时的最宽距离
     },
     # 'biking': {},
 }
