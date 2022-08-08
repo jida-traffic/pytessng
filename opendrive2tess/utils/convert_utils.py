@@ -46,8 +46,6 @@ def convert_roads_info(opendrive, step_length, filter_types):  # step_length需�
         elevations = [elevation[0] for elevation in road.elevationProfile.elevations]
         # 为了适配tess，将road按照section切分为多个link
         for section in road.lanes.lane_sections:
-            right_points = []
-            left_points = []
             section_id = section.idx
             section_length = section.length
             section_sPos = section.sPos
@@ -55,64 +53,33 @@ def convert_roads_info(opendrive, step_length, filter_types):  # step_length需�
 
             steps = int(section_length // step_length + 2)  # steps >= 2
             lengths = list(linspace(section_sPos, section_ePos, steps))
-            left_offsets = []
-            right_offsets = []
-            # lengths = list(road_section_distance[road.id][section_id].values())[0] # 尽量拟合路段与车道
+            points = []
             # 计算每一点的坐标和角度
             for length in lengths:
-                right_length = length
-                left_length = road_length - length
-                if length > road_length:
-                    right_length = road_length
-                    left_length = 0
-                right_position, right_angle = planView.calc_geometry(right_length)
-                left_position, left_angle = planView.calc_geometry(left_length)
-                # 目前认为左右来向在同一断面的高程一致
-                elevation_result = calc_elevation(right_length, elevations)
-                right_points.append(
+                # 根据点位 计算左右来向相应点的坐标/角度/高程
+                position, angle = planView.calc_geometry(length)
+                elevation_result = calc_elevation(length, elevations)
+                points.append(
                     {
-                        "position": list(right_position) + [elevation_result],
-                        'angle': right_angle,
-                        "offset": right_length,  # 记录在本section内此点的移动位置
+                        "position": list(position) + [elevation_result],
+                        'angle': angle,
+                        "offset": length,  # 记录在本section内此点的移动位置
                     }
                 )
-                left_points.append(
-                    {
-                        "position": list(left_position) + [elevation_result],
-                        'angle': left_angle,
-                        "offset": left_length,
-                    }
-                )
-                left_offsets.append(left_length)
-                right_offsets.append(right_length)
 
             # 左右方向参考线点计算不一样
             road_points[section_id] = {
-                "right_points": right_points,
-                "left_points": left_points,
+                "right_points": points,
+                "left_points": points[::-1],
                 'sPos': section_sPos,
                 'ePos': section_ePos,
                 'length': section_length,
                 'steps': steps,
                 'lengths': lengths,
-                "left_offsets": left_offsets,
-                "right_offsets": right_offsets,
                 "elevations": [],
             }
 
-        # 计算每一段section 的高程信息
-        # 获取高程分段列表
-        elevations = [elevation[0] for elevation in road.elevationProfile.elevations]
-        for section_id, section_info in road_points.items():
-            sPos = section_info["sPos"]
-            ePos = section_info["ePos"]
-            section_info["start_high"] = calc_elevation(sPos, elevations)
-            section_info["end_high"] = calc_elevation(ePos, elevations)
-            for index, length in enumerate(section_info["lengths"]):
-                section_info["elevations"].append(calc_elevation(length, elevations))
-
         sections_mapping = convert_section_info(road.lanes.lane_sections, filter_types)
-        # elevations [(e1),(e2),(e3)]  start_pos, road.elevationProfile.elevations[0][0].polynomial_coefficients
         roads_info[road.id] = {
             "name": road.name,
             "junction_id": road.junction and road.junction.id,  # -1 为非junction，此道路是在交叉口内部
@@ -120,7 +87,6 @@ def convert_roads_info(opendrive, step_length, filter_types):  # step_length需�
             'length': road_length,
             'lane_sections': sections_mapping,  # lane 概况
         }
-
     return roads_info
 
 

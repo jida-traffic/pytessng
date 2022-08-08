@@ -104,8 +104,6 @@ class Network:
             lanelet_network.add_lanelet(lanelet)
             progress += 1
             send_signal(context, int(progress / len(self._planes) * 80))
-            # if my_signal and pb:
-            #     my_signal.emit(pb, int(progress / len(self._planes) * 80), {}, False)
 
         return lanelet_network
 

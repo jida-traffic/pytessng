@@ -252,6 +252,11 @@ class PlanView:
                     f", but path has only length of l={ self._geo_lengths[-1]}"
                 )
 
+                # bug fix why geo_idx is index which geometry to use?
+                # return self._geometries[-1].calc_position(
+                #     self._geo_lengths[-1]
+                # )
+
         # geo_idx is index which geometry to use
         return self._geometries[geo_idx].calc_position(
             s_pos - self._geo_lengths[geo_idx]

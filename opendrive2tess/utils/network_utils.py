@@ -300,9 +300,11 @@ class Network:
                 roads_info[road_id]['sections'][section_id]["lanes"][lane_id] = lane_info
 
             send_signal(context, 100, network_info=self.network_info)
+            # json.dump(self.network_info, open("my.json", 'w'))
+
         except Exception as e:
             send_signal(context, 0, error=True)
-            print(e)
+            print(f"convert_network error: {e}")
 
 
     def create_network(self, tess_lane_types, netiface=None):
@@ -314,9 +316,28 @@ class Network:
         # 如果后续tess在同一路段中存在不同类型的车道，tess_lane_types需要做成列表嵌套
         error_junction = []
 
-        # 不同类型的车道建立不同的路段
+        # 从文件中取数据
+        # self.network_info = json.load(open("my.json", "r"))
+        # def update_dict(root):
+        #     # 判断是否为空树
+        #     if root == {}:
+        #         return
+        #     # 递归遍历嵌套字典
+        #     list_key = list(root.keys())
+        #     for root_key in list_key:
+        #         # 递归非叶子节点
+        #         try:
+        #             temp = int(root_key)
+        #         except:
+        #             temp = root_key
+        #         # print(root_key, temp)
+        #         root[temp] = root.pop(root_key)
+        #         if isinstance(root[temp], dict):
+        #             update_dict(root[temp])
+        # update_dict(self.network_info)
+
         for tess_lane_type in tess_lane_types:
-            # 会改变数据结构，所以创建新的数据备份
+            # 会改变数据结构，可能在重复创建时有影响，所以创建新的数据备份
             roads_info = copy.deepcopy(self.network_info["roads_info"])
             lanes_info = copy.deepcopy(self.network_info["lanes_info"])
 
@@ -613,13 +634,13 @@ class Network:
             if lanesWithPoints3:
                 netiface.createConnector3DWithPoints(from_link_id, to_link_id,
                                                    lFromLaneNumber, lToLaneNumber,
-                                                   lanesWithPoints3, f"{from_link_id}-{to_link_id}")
+                                                   lanesWithPoints3, f"{from_link_id}-{set(lFromLaneNumber)}-{to_link_id}-{set(lToLaneNumber)}")
             # TESS 自动计算，建立连接
             else:
                 netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber)
 
     def get_coo_list(self, vertices):
-        x_move, y_move = 0, 0  # self.xy_move
+        x_move, y_move = self.xy_move  #self.xy_move
         temp_list = []
         for index in range(0, len(vertices)):
             vertice = vertices[index]
