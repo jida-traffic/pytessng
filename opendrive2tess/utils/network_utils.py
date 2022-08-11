@@ -43,7 +43,7 @@ def get_section_childs(section_info, lengths, direction):
     # 连续多个点的信息完全一致，可作为同一路段
     childs = []
     child_point = []
-    start_index = None #分片时，start_index 为None 会视为0
+    start_index = None  # 分片时，start_index 为None 会视为0
     for index in range(len(lengths)):
         if len(child_point) == 1:
             start_index = index - 1
@@ -258,7 +258,6 @@ class Network:
         }
         return network_info
 
-
     def convert_network(self, step=None, filters=None, context=None):
         try:
             self.network_info = self.extract_network_info(step, filters, context)
@@ -306,7 +305,6 @@ class Network:
             send_signal(context, 0, error=True)
             print(f"convert_network error: {e}")
 
-
     def create_network(self, tess_lane_types, netiface=None):
         if not netiface:
             netiface = tngIFace().netInterface()
@@ -315,26 +313,6 @@ class Network:
 
         # 如果后续tess在同一路段中存在不同类型的车道，tess_lane_types需要做成列表嵌套
         error_junction = []
-
-        # 从文件中取数据
-        # self.network_info = json.load(open("my.json", "r"))
-        # def update_dict(root):
-        #     # 判断是否为空树
-        #     if root == {}:
-        #         return
-        #     # 递归遍历嵌套字典
-        #     list_key = list(root.keys())
-        #     for root_key in list_key:
-        #         # 递归非叶子节点
-        #         try:
-        #             temp = int(root_key)
-        #         except:
-        #             temp = root_key
-        #         # print(root_key, temp)
-        #         root[temp] = root.pop(root_key)
-        #         if isinstance(root[temp], dict):
-        #             update_dict(root[temp])
-        # update_dict(self.network_info)
 
         for tess_lane_type in tess_lane_types:
             # 会改变数据结构，可能在重复创建时有影响，所以创建新的数据备份
@@ -389,7 +367,8 @@ class Network:
                     continue
                 for direction in ['left', 'right']:
                     # 判断此方向的路段中是否存在车道
-                    is_exist = max(section_info['tess_lane_ids']) > 0 if direction == 'left' else min(section_info['tess_lane_ids']) < 0
+                    is_exist = max(section_info['tess_lane_ids']) > 0 if direction == 'left' else min(
+                        section_info['tess_lane_ids']) < 0
                     if not is_exist:
                         continue
 
@@ -404,8 +383,9 @@ class Network:
                         child = childs[index]
                         # 步长过大，可能会导致在分段时 child 只包含了一个点
                         start_index, end_index = child['start'], child['end'] + 1
-                        land_ids = sorted(child['lanes'], reverse=reverse) #列表内多点的的数据是一样的，取第一个即可
-                        lCenterLinePoint = self.get_coo_list([point["position"] for point in points][start_index:end_index])
+                        land_ids = sorted(child['lanes'], reverse=reverse)  # 列表内多点的的数据是一样的，取第一个即可
+                        lCenterLinePoint = self.get_coo_list(
+                            [point["position"] for point in points][start_index:end_index])
                         lanesWithPoints = [
                             {
                                 'left': self.get_coo_list(
@@ -421,7 +401,7 @@ class Network:
                             for lane_id in land_ids
                         ]
                         link_obj = netiface.createLink3DWithLanePoints(lCenterLinePoint, lanesWithPoints,
-                                                                     f"{road_id}_{section_id}_{index}_{direction}")
+                                                                       f"{road_id}_{section_id}_{index}_{direction}")
                         # link_obj 可能为None, 为什么
                         if not link_obj:
                             error_junction.append(
@@ -510,9 +490,12 @@ class Network:
                             to_lane.number() + 1)
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'].append(
                             {
-                                'center': self.get_coo_list([lane_info['center_vertices'][-1], lanes_info[successor_id]['center_vertices'][0]]),
-                                'left': self.get_coo_list([lane_info['left_vertices'][-1], lanes_info[successor_id]['left_vertices'][0]]),
-                                'right': self.get_coo_list([lane_info['right_vertices'][-1], lanes_info[successor_id]['right_vertices'][0]]),
+                                'center': self.get_coo_list(
+                                    [lane_info['center_vertices'][-1], lanes_info[successor_id]['center_vertices'][0]]),
+                                'left': self.get_coo_list(
+                                    [lane_info['left_vertices'][-1], lanes_info[successor_id]['left_vertices'][0]]),
+                                'right': self.get_coo_list(
+                                    [lane_info['right_vertices'][-1], lanes_info[successor_id]['right_vertices'][0]]),
                             }
                         )  # 注意连接线方向
                         connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'].append(
@@ -591,24 +574,23 @@ class Network:
 
                             # 用前后车道的首尾坐标替换原有首尾坐标
                             center_connector_vertices = lanes_info[predecessor_id]['center_vertices'][-1:] + \
-                                                 lane_info['center_vertices'][1:-1] + \
-                                                 lanes_info[successor_id]['center_vertices'][:1]
+                                                        lane_info['center_vertices'][1:-1] + \
+                                                        lanes_info[successor_id]['center_vertices'][:1]
                             left_connector_vertices = lanes_info[predecessor_id]['left_vertices'][-1:] + \
                                                       lane_info['left_vertices'][1:-1] + \
                                                       lanes_info[successor_id]['left_vertices'][:1]
                             right_connector_vertices = lanes_info[predecessor_id]['right_vertices'][-1:] + \
-                                                      lane_info['right_vertices'][1:-1] + \
-                                                      lanes_info[successor_id]['right_vertices'][:1]
+                                                       lane_info['right_vertices'][1:-1] + \
+                                                       lanes_info[successor_id]['right_vertices'][:1]
                             connector_vertices = {
-                                    "center": self.get_coo_list(center_connector_vertices),
-                                    "left": self.get_coo_list(left_connector_vertices),
-                                    "right": self.get_coo_list(right_connector_vertices),
-                                }
+                                "center": self.get_coo_list(center_connector_vertices),
+                                "left": self.get_coo_list(left_connector_vertices),
+                                "right": self.get_coo_list(right_connector_vertices),
+                            }
                             # connector_vertices = lane_info['center_vertices']
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'].append(
                                 connector_vertices
                             )
-                                # self.get_coo_list(connector_vertices))  # 注意连接线方向
                             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'].append(
                                 {
                                     "predecessor_id": predecessor_id,
@@ -633,17 +615,16 @@ class Network:
             # 源数据建立连接
             if lanesWithPoints3:
                 netiface.createConnector3DWithPoints(from_link_id, to_link_id,
-                                                   lFromLaneNumber, lToLaneNumber,
-                                                   lanesWithPoints3, f"{from_link_id}-{set(lFromLaneNumber)}-{to_link_id}-{set(lToLaneNumber)}")
-            # TESS 自动计算，建立连接
+                                                     lFromLaneNumber, lToLaneNumber,
+                                                     lanesWithPoints3,
+                                                     f"{from_link_id}-{set(lFromLaneNumber)}-{to_link_id}-{set(lToLaneNumber)}")
+                # TESS 自动计算，建立连接
             else:
                 netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber)
 
     def get_coo_list(self, vertices):
-        x_move, y_move = self.xy_move  #self.xy_move
+        x_move, y_move = 0, 0  # self.xy_move
         temp_list = []
-        for index in range(0, len(vertices)):
-            vertice = vertices[index]
+        for vertice in vertices:
             temp_list.append(QVector3D(m2p((vertice[0] - x_move)), m2p(-(vertice[1] - y_move)), m2p(vertice[2])))
-
         return temp_list
