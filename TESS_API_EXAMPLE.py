@@ -35,15 +35,8 @@ class TESS_API_EXAMPLE(QMainWindow):
         self.ui.btnShowXodr.clicked.connect(self.showXodr)
 
     def openNet(self):
-        # custSuffix = "TESSNG Files (*.tess);;TESSNG Files (*.backup);;OpenDrive Files (*.xodr)"
-        # dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
-        # selectedFilter = "TESSNG Files (*.xodr)"
-        # options = QFileDialog.Options(0)
-        # netFilePath, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, custSuffix, selectedFilter, options)
         xodrSuffix = "OpenDrive Files (*.xodr)"
         dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
-        temp_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001.tmp')
-        temp_back_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001_back.tmp')
 
         iface = tngIFace()
         netiface = iface.netInterface()
@@ -59,11 +52,7 @@ class TESS_API_EXAMPLE(QMainWindow):
             reply = QMessageBox.question(self, '提示信息', '是否保存数据', QMessageBox.Yes, QMessageBox.No)
             # TODO 保存数据--> 清除数据 --> 打开新文件
             if reply == QMessageBox.Yes:
-                # <tess 会更新temp文件，所以选择保存时需要额外处理>，先把tmp文件复制，然后替换,嘴还不要采取这种方式
-                copyfile(temp_file, temp_back_file)
                 netiface.saveRoadNet()
-                copyfile(temp_back_file, temp_file)
-            netiface.openNetFle(temp_file)
 
         # custSuffix = "TESSNG Files (*.tess);;TESSNG Files (*.backup);;OpenDrive Files (*.xodr)"
         netFilePath, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, xodrSuffix)
@@ -81,7 +70,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             step = float(self.ui.xodrStep.currentText().split(" ")[0])
             self.network = TessNetwork(netFilePath)
 
-            # TODO 添加进度条--主窗口
             # 主线程连接信号
             my_signal.text_print.connect(self.ui.change_progress)
             # 启动子线程
@@ -108,10 +96,10 @@ class TESS_API_EXAMPLE(QMainWindow):
             return
 
         # 打开新底图
-        temp_file = os.path.join(QApplication.instance().applicationDirPath(), 'Temp', 'Net001.tmp')
         iface = tngIFace()
         netiface = iface.netInterface()
-        netiface.openNetFle(temp_file)
+
+        netiface.setNetAttrs("my_", "OpenDrive", otherAttrsJson=self.network.network_info["header_info"])
         error_junction = self.network.create_network(tess_lane_types, netiface)
         message = "\n".join([str(i) for i in error_junction])
 

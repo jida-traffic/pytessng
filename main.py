@@ -22,20 +22,17 @@ if __name__ == '__main__':
     tessng = factory.build(plugin, config)
 
     try:
-        config = __import__('config')
+        config_module = __import__('config')
     except:
-        config = object()
-        sys.modules["config"] = config
+        config_module = object()
+    finally:
+        sys.modules["config"] = config_module
 
-    if getattr(config, 'IS_SAVE'):
-        my_process = MyProcess(config)
+    if getattr(config_module, 'IS_SAVE'):
+        my_process = MyProcess(config_module)
         sys.modules["__main__"].__dict__['myprocess'] = my_process
 
     if tessng is None:
         sys.exit(0)
     else:
         sys.exit(app.exec_())
-
-
-
-

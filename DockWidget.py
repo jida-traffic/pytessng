@@ -34,7 +34,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("0.5 m", "0.1 m", "1.0 m", "5.0 m", "10.0 m"))
+        self.xodrStep.addItems(("1.0 m", "0.1 m", "0.5 m", "5.0 m", "10.0 m"))
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
         self.pb.setRange(0, 100)  # 进度对话框的范围设定
@@ -92,11 +92,13 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label3 = QLabel()
 
         from opendrive2tess.utils.config import WIDTH_LIMIT
-        split_limit = WIDTH_LIMIT['机动车道']['split']
-        join_limit = WIDTH_LIMIT['机动车道']['join']
+        context = "车道转换说明:\n"
+        for lane_type, limit_data in WIDTH_LIMIT.items():
+            split_limit = limit_data.get('split', None)
+            join_limit = limit_data.get('join', None)
+            context += f"{lane_type}:\n{f'小于 {join_limit}m'.ljust(12)}:不解析\n{f'{join_limit}m 至 {split_limit}m'.ljust(13)}:视为连接段\n{f'大于 {split_limit}m'.ljust(12)}:正常车道\n"
         # 中文字符宽度是英文字符的两倍
-        xodr_label3.setText(
-            f"车道转换说明:\n机动车道:\n{f'小于 {join_limit}m'.ljust(12)}:不解析\n{f'{join_limit}m 至 {split_limit}m'.ljust(13)}:视为连接段\n{f'大于 {split_limit}m'.ljust(12)}:正常车道\n")
+        xodr_label3.setText(context)
 
         self.verticalLayout_4.addWidget(xodr_label2)
         self.verticalLayout_4.addWidget(self.xodrCk1)

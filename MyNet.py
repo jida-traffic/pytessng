@@ -39,9 +39,7 @@ class MyNet(PyCustomerNet):
                 'right': get_coo_list(lane['right']),
             } for lane in [lane_points]
         ]
-        netiface.createLink3DWithLanePoints(lCenterLinePoint, lanesWithPoints,
-                                          f"_right")
-        pass
+        netiface.createLink3DWithLanePoints(lCenterLinePoint, lanesWithPoints)
 
     def afterLoadNet(self):
         # 代表TESS NG的接口
@@ -49,12 +47,10 @@ class MyNet(PyCustomerNet):
         # 代表TESS NG的路网子接口
         netiface = iface.netInterface()
         # 设置场景大小
-        netiface.setSceneSize(10000, 10000)  # 测试数据
-        # netiface.setSceneSize(4000, 1000)  # 华为路网
-        # netiface.setSceneSize(10000, 3000)  # 深圳路网
+        netiface.setSceneSize(10000, 10000)
         # 获取路段数
-        count = netiface.linkCount()
-        netiface.createNet("S32路网", "OPENDRIVE")
+        netiface.setNetAttrs("S32路网", "OPENDRIVE")  #setNetAttrs
 
+        count = netiface.linkCount()
         # if (count == 0):
         #     self.createNet()
