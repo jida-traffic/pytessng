@@ -7,9 +7,9 @@ LANE_TYPE_MAPPING = {
     'exit': '机动车道',
     'connectingRamp': '机动车道',
 
-    # 'shoulder': '应急车道',
+    'shoulder': '应急车道',
+    'stop': '应急车道',
     # 'border': '',
-    # 'stop': '应急车道',
     # 'none': '',
     # 'redtricted': '',
     # 'parking': '',
