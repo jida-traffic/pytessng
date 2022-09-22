@@ -7,9 +7,9 @@ LANE_TYPE_MAPPING = {
     'exit': '机动车道',
     'connectingRamp': '机动车道',
 
-    'shoulder': '应急车道',
-    'stop': '应急车道',
+    # 'shoulder': '应急车道',
     # 'border': '',
+    # 'stop': '应急车道',
     # 'none': '',
     # 'redtricted': '',
     # 'parking': '',
@@ -20,19 +20,18 @@ LANE_TYPE_MAPPING = {
     'sidewalk': '人行道',
 }
 
+# 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
+point_require = 2
+POINT_REQUIRE = max(2, point_require)
 
 # 需要被处理的车道类型及处理参数
 WIDTH_LIMIT = {
     '机动车道': {
         'split': 3,  # 作为正常的最窄距离
-        'join': 0.5,  # 被忽略时的最宽距离
+        'join': 2,  # 被忽略时的最宽距离
     },
     # 'biking': {},
 }
-
-# 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
-point_require = 2
-POINT_REQUIRE = max(2, point_require)
 
 
 UNITY_LANE_MAPPING = {

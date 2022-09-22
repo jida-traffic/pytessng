@@ -1,9 +1,7 @@
 import collections
 from matlab import linspace, sqrt
-
 from commonroad.scenario.scenario import Scenario
 from collections import defaultdict
-
 from opendrive2tess.opendrive2lanelet.opendriveparser.elements.opendrive import OpenDrive
 from opendrive2tess.opendrive2lanelet.network import Network
 
@@ -213,8 +211,8 @@ def lane_restrictions(lane):
     }
 
 
+# 车道信息
 def convert_section_info(sections, filter_types):
-    # 车道信息
     def default_section():
         return {
             'right': [],
