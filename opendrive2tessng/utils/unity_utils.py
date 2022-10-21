@@ -7,13 +7,13 @@ from opendrive2tessng.utils.config import UNITY_LANE_MAPPING
 
 def deviation_point(coo1, coo2, width, right=False, is_last=False):
     signl = 1 if right else -1  #记录向左向右左右偏移
-    x1, y1, x2, y2 = coo1[0], coo1[1], coo2[0], coo2[1]  # 如果是最后一个点，取第二个 点做偏移
-    x_base, y_base = (x1, y1) if not is_last else (x2, y2)
+    x1, y1, z1, x2, y2, z2 = coo1 + coo2  # 如果是最后一个点，取第二个 点做偏移
+    x_base, y_base, z_base = coo1 if not is_last else coo2
     if not ((x2-x1) or (y2-y1)):  # 分母为0
-        return [x_base, y_base]
+        return [x_base, y_base, z_base]
     X = x_base + signl * width * (y2 - y1) / sqrt(square(x2-x1) + square((y2-y1)))
     Y = y_base + signl * width * (x1 - x2) / sqrt(square(x2-x1) + square((y2-y1)))
-    return [X, Y]
+    return [X, Y, z_base]
 
 
 # TODO 移除部分车道
@@ -50,7 +50,6 @@ def convert_unity(roads_info, lanes_info, step):
                     xy_limit[1] = max(xy_limit[1], position[0])
                     xy_limit[2] = min(xy_limit[2], position[1])
                     xy_limit[3] = max(xy_limit[3], position[1])
-    x_move, y_move = sum(xy_limit[:2]) / 2, sum(xy_limit[2:]) / 2 if xy_limit else (0, 0)
 
     lanes_info, roads_info = new_lanes_info, new_roads_info
     # unity 数据导出
@@ -71,10 +70,19 @@ def convert_unity(roads_info, lanes_info, step):
         for index, distance in enumerate(lane_info['distance'][:-1]):  # 两两组合，最后一个不可作为首位
             left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index + 1], right_vertices[index], \
                                                right_vertices[index + 1]
-            coo_0 = [[left_0[0] - x_move, 0, left_0[1] - y_move], [left_1[0] - x_move, 0, left_1[1] - y_move],
-                     [right_0[0] - x_move, 0, right_0[1] - y_move]]
-            coo_1 = [[left_1[0] - x_move, 0, left_1[1] - y_move], [right_1[0] - x_move, 0, right_1[1] - y_move],
-                     [right_0[0] - x_move, 0, right_0[1] - y_move]]
+
+            # # 移动到中心点
+            # x_move, y_move = sum(xy_limit[:2]) / 2, sum(xy_limit[2:]) / 2 if xy_limit else (0, 0)
+            # coo_0 = [[left_0[0] - x_move, 0, left_0[1] - y_move], [left_1[0] - x_move, 0, left_1[1] - y_move],
+            #          [right_0[0] - x_move, 0, right_0[1] - y_move]]
+            # coo_1 = [[left_1[0] - x_move, 0, left_1[1] - y_move], [right_1[0] - x_move, 0, right_1[1] - y_move],
+            #          [right_0[0] - x_move, 0, right_0[1] - y_move]]
+
+            def xyz2xzy(array):
+                return [array[0], array[2], array[1]]
+
+            coo_0 = [xyz2xzy(left_0), xyz2xzy(left_1), xyz2xzy(right_0)]
+            coo_1 = [xyz2xzy(left_1), xyz2xzy(right_1), xyz2xzy(right_0)]
             unity_info[lane_unity_mapping[lane_type]] += coo_0 + coo_1
 
     # 计算车道分隔线
@@ -184,12 +192,22 @@ def convert_unity(roads_info, lanes_info, step):
             if type == "broken" and index % 10 in [0, 1, 2, 3]:  # 断线 3:2 虚线长度由步长和比例共同控制
                 continue
 
-            left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index + 1], right_vertices[index], \
-                                               right_vertices[index + 1]
-            coo_0 = [[left_0[0] - x_move, 0, left_0[1] - y_move], [left_1[0] - x_move, 0, left_1[1] - y_move],
-                     [right_0[0] - x_move, 0, right_0[1] - y_move]]
-            coo_1 = [[left_1[0] - x_move, 0, left_1[1] - y_move], [right_1[0] - x_move, 0, right_1[1] - y_move],
-                     [right_0[0] - x_move, 0, right_0[1] - y_move]]
+            # # 移动到中心点
+            # x_move, y_move = sum(xy_limit[:2]) / 2, sum(xy_limit[2:]) / 2 if xy_limit else (0, 0)
+            # left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index + 1], right_vertices[index], \
+            #                                    right_vertices[index + 1]
+            # coo_0 = [[left_0[0] - x_move, 0, left_0[1] - y_move], [left_1[0] - x_move, 0, left_1[1] - y_move],
+            #          [right_0[0] - x_move, 0, right_0[1] - y_move]]
+            # coo_1 = [[left_1[0] - x_move, 0, left_1[1] - y_move], [right_1[0] - x_move, 0, right_1[1] - y_move],
+            #          [right_0[0] - x_move, 0, right_0[1] - y_move]]
+
+            def xyz2xzy(array):
+                return [array[0], array[2], array[1]]
+
+            coo_0 = [xyz2xzy(left_0), xyz2xzy(left_1), xyz2xzy(right_0)]
+            coo_1 = [xyz2xzy(left_1), xyz2xzy(right_1), xyz2xzy(right_0)]
+            unity_info[lane_unity_mapping[lane_type]] += coo_0 + coo_1
+
             if color == "yellow":
                 unity_info["YellowLine"] += coo_0 + coo_1
             else:

@@ -218,8 +218,11 @@ class Network:
         lanes_info = copy.deepcopy(self.network_info["lanes_info"])
 
         # unity 信息提取
-        # from opendrive2tessng.utils.unity_utils import convert_unity
-        # unity_info = convert_unity(roads_info, lanes_info, self.step)
+        from opendrive2tessng.utils.unity_utils import convert_unity
+        unity_info = convert_unity(roads_info, lanes_info, self.step)
+        unity_info = {'unity': unity_info, 'count': {}}
+        for k, v in unity_info['unity'].items():
+            unity_info['count'][k] = len(v)
         
         # 对于宽度过窄的车道所在路段进行打断
         for road_id, road_info in roads_info.items():
@@ -737,8 +740,8 @@ class Network:
             x_move, y_move = move_mapping[self.file_name.split("_")[-1]]
         else:
             x_move, y_move = self.xy_move
-        # x_move, y_move = self.xy_move
-        x_move, y_move =0, 0
+        x_move, y_move = self.xy_move
+        # x_move, y_move =0, 0
         temp_list = []
         for vertice in vertices:
             temp_list.append(QVector3D(m2p((vertice[0] + x_move)), m2p(-(vertice[1] + y_move)), m2p(vertice[2])))
