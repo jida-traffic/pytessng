@@ -1,9 +1,11 @@
+import json
 import random
 
 from PySide2.QtCore import *
 from Tessng import TessInterface, SimuInterface, PyCustomerSimulator, IVehicle, m2p, tngIFace, tngPlugin
-from Tessng import TESSNG
-from opendrive2tess.utils.external_utils import get_vehi_info
+from Tessng import *
+
+from opendrive2tessng.utils.external_utils import get_vehi_info
 
 
 class MySimulator(QObject, PyCustomerSimulator):
@@ -163,69 +165,49 @@ class MySimulator(QObject, PyCustomerSimulator):
 
         # TODO 发送所有的消息至后台处理接口(queue or redis or http)
         data = get_vehi_info(simuiface)
-        import sys
-        my_process = sys.modules["__main__"].__dict__['myprocess']
-        # 如果队列满了，取出第一个数据，为了防止数据在期间被另一进程消费完，导致等待(死锁)，采用nowait并捕获
-        if my_process.my_queue.full():
-            try:
-                my_process.my_queue.get_nowait()
-            except:
-                pass
-        try:
-            my_process.my_queue.put_nowait(data)
-        except:
-            pass
-        # print(my_process.my_queue.qsize())
 
-        # 当前在ID为1的路段上车辆
-        lVehis = simuiface.vehisInLink(1)
+        # 发送消息
+        # import sys
+        # my_process = sys.modules["__main__"].__dict__['myprocess']
+        # # 如果队列满了，取出第一个数据，为了防止数据在期间被另一进程消费完，导致等待(死锁)，采用nowait并捕获
+        # if my_process.my_queue.full():
+        #     try:
+        #         my_process.my_queue.get_nowait()
+        #     except:
+        #         pass
+        # try:
+        #     my_process.my_queue.put_nowait(data)
+        # except:
+        #     pass
 
-        if batchNum % 20 == 0:
-            strLinkCount = str(netiface.linkCount())
-            strVehiCount = str(len(lAllVehi))
-            strSimuTime = str(simuTime)
-            runInfo = f"路段数：{strLinkCount}\n运行车辆数：{strVehiCount}\n仿真时间：{strSimuTime}(毫秒)"
-            self.forRunInfo.emit(runInfo)
-
-
-        # 动态发车，不通过发车点
-        if batchNum % 50 == 1:
-            r = hex(256 + random.randint(0,256))[3:].upper()
-            g = hex(256 + random.randint(0,256))[3:].upper()
-            b = hex(256 + random.randint(0,256))[3:].upper()
-            color = f"#{r}{g}{b}"
-            # 路段上发车
-            dvp = TESSNG.DynaVehiParam()
-            dvp.vehiTypeCode = random.randint(0, 4) + 1
-            dvp.roadId = 6
-            dvp.laneNumber = random.randint(0, 3)
-            dvp.dist = 50
-            dvp.speed = 20
-            dvp.color = color
-
-            pIVehicle1 = simuiface.createGVehicle(dvp)
-            if pIVehicle1 != None:
-                pass
-
-            # 连接段上发车
-            dvp2 = TESSNG.DynaVehiParam()
-            dvp2.vehiTypeCode = random.randint(0, 4) + 1
-            dvp2.roadId = 3
-            dvp2.laneNumber = random.randint(0, 3)
-            dvp2.toLaneNumber = dvp2.laneNumber # 默认为 - 1，如果大于等于0, 在连接段上发车
-            dvp2.dist = 50
-            dvp2.speed = 20
-            dvp2.color = color
-            pIVehicle2 = simuiface.createGVehicle(dvp2)
-            if pIVehicle2 != None:
-                pass
+        # 保存为离线数据
+        # import time, os
+        # minute = int(time.time() / 60)
+        # file_path = f"Data/log/{str(minute).rjust(15, '0')}.json"
+        # if os.path.exists(file_path):
+        #     file_data = json.load(open(file_path, 'r'))
+        # else:
+        #     file_data = []
+        # file_data.append(data)
+        # json.dump(file_data, open(file_path, 'w'))
 
 
+    def calcLimitedLaneNumber(self, pIVehicle):
+        vehicle_lane_mapping = {
+            "小客车": "机动车道",
+            "大客车": "机动车道",
+            "公交车": "机动车道",
+            "货车": "机动车道",
+            "电动车": "非机动车道",
+            "自行车": "非机动车道",
+            "行人": "非机动车道",
+        }
 
+        vehicle_type = pIVehicle.vehicleTypeName()
 
-
-
-
-
-
-
+        limit_lanes = []
+        if vehicle_type in vehicle_lane_mapping.keys():
+            for lane in pIVehicle.lane().link().lanes():
+                if vehicle_lane_mapping[vehicle_type] != lane.actionType():
+                    limit_lanes.append(lane.number())
+        return limit_lanes

@@ -4,11 +4,13 @@ import os
 from pathlib import Path
 from DockWidget import *
 from PySide2.QtWidgets import QFileDialog, QMessageBox
-from opendrive2tess.main import main as TessNetwork
+from opendrive2tessng.main import main as TessNetwork
 from PySide2.QtWidgets import *
 from Tessng import *
 from threading import Thread
-from shutil import copyfile
+from tess2xodr import Connector, Junction
+from tess2xodr import Road
+from create_node import init_doc, add_road, add_junction
 
 
 class MySignals(QObject):
@@ -29,10 +31,66 @@ class TESS_API_EXAMPLE(QMainWindow):
 
     def createConnect(self):
         self.ui.btnOpenNet.clicked.connect(self.openNet)
+        self.ui.btnCreateXodr.clicked.connect(self.createXodr)
         # self.ui.btnStartSimu.clicked.connect(self.startSimu)
         # self.ui.btnPauseSimu.clicked.connect(self.pauseSimu)
         # self.ui.btnStopSimu.clicked.connect(self.stopSimu)
         self.ui.btnShowXodr.clicked.connect(self.showXodr)
+
+    def createXodr(self, info):
+        iface = tngIFace()
+        netiface = iface.netInterface()
+
+        # # 记录所有的连接关系
+        # 原则上，一个连接面域内存在三个及其以上的的 link(一个以上的连接关系) 称之为junction，否则为 connector
+        # allConnectorArea = netiface.allConnectorArea()[0].allConnector()[0].laneConnectors()[0].fromLane().id()
+        connecors = []
+        junctions = []
+        for ConnectorArea in netiface.allConnectorArea():
+            junction = Junction(ConnectorArea)
+            junctions.append(junction)
+            for connector in ConnectorArea.allConnector():
+                # 为所有的连接面域创建junction
+                connecors.append(Connector(connector, junction))
+
+        roads = []
+        for link in netiface.links():
+            roads.append(Road(link))
+
+        # 连接段 转 路段
+        # connecors = []
+        # for connector in netiface.connectors():  # 连接段
+        #     connecors.append(Connector(connector))
+        # for laneConnector in connector.laneConnectors():  # 车道连接关系
+        #     from_lane, to_lane = laneConnector.fromLane(), laneConnector.toLane()
+        # leftBreakPoint3Ds
+        # 前后连接路段，根据前后路段数创建连接段，优先保证左侧车道的宽度，右侧车道平滑处理
+
+        # 路网绘制成功后，写入xodr文件
+        doc = init_doc(None)
+        # 绘制所有的junction
+        doc = add_junction(doc, junctions)
+
+        # 绘制所有的路段（link/connector）
+        doc = add_road(doc, roads + connecors)
+        filename = 'Data/test.xodr'
+        # 开始写xml文档
+        # with open('Data/test.xodr', 'w', encoding="utf-8") as fp:
+        #     doc.writexml(fp, indent="\t", newl='\n')
+
+        # coding:utf-8
+        import xml.dom.minidom
+        uglyxml = doc.toxml()
+        xml = xml.dom.minidom.parseString(uglyxml)
+        xml_pretty_str = xml.toprettyxml()
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(xml_pretty_str)
+
+        pass
+
+
+
 
     def openNet(self):
         xodrSuffix = "OpenDrive Files (*.xodr)"
@@ -77,11 +135,18 @@ class TESS_API_EXAMPLE(QMainWindow):
                 "signal": my_signal.text_print,
                 "pb": pb
             }
-            thread = Thread(target=self.network.convert_network, args=(step, None, context))
+            filters = None # list(LANE_TYPE_MAPPING.keys())
+            thread = Thread(target=self.network.convert_network, args=(step, filters, context))
             thread.start()
 
 
     def showXodr(self, info):
+        """
+        点击按钮，绘制路网
+        Args:
+            info: None
+        Returns:
+        """
         if not (self.network and self.network.network_info):
             QMessageBox.warning(None, "提示信息", "请先导入xodr路网文件或等待文件转换完成")
             return
@@ -98,8 +163,10 @@ class TESS_API_EXAMPLE(QMainWindow):
         # 打开新底图
         iface = tngIFace()
         netiface = iface.netInterface()
+        attrs = netiface.netAttrs()
+        if attrs is None or attrs.netName() != "PYTHON 路网":
+            netiface.setNetAttrs("PYTHON 路网", "OPENDRIVE", otherAttrsJson=self.network.network_info["header_info"])
 
-        netiface.setNetAttrs("my_", "OpenDrive", otherAttrsJson=self.network.network_info["header_info"])
         error_junction = self.network.create_network(tess_lane_types, netiface)
         message = "\n".join([str(i) for i in error_junction])
 
@@ -107,8 +174,22 @@ class TESS_API_EXAMPLE(QMainWindow):
         is_show = bool(error_junction)
         self.ui.text_label_2.setVisible(is_show)
         self.ui.txtMessage2.setVisible(is_show)
+        # QMessageBox.warning(None, "仿真提醒", "如需仿真, 请保存为tess文件后重新打开")
 
-        QMessageBox.warning(None, "仿真提醒", "如需仿真, 请保存为tess文件后重新打开")
+        # return
+        # # 路网绘制成功后，写入xodr文件
+        # links = netiface.links()
+        # print(len(links))
+        # roads = []
+        # from tess2xodr import Road
+        # for link in links:
+        #     roads.append(Road(link))
+        #
+        # from create_node import create_doc
+        # doc = create_doc(roads)
+        # # 开始写xml文档
+        # fp = open('Data/test.xodr', 'w')
+        # doc.writexml(fp, indent='\t', addindent='\t', newl='\n', encoding="utf-8")
 
 
 if __name__ == '__main__':

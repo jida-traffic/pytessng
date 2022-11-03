@@ -11,6 +11,7 @@ from PySide2 import QtCore
 from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
+from opendrive2tessng.utils.config import WIDTH_LIMIT, LANE_TYPE_MAPPING
 
 
 class Ui_TESS_API_EXAMPLEClass(object):
@@ -26,6 +27,11 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout.setObjectName(u"verticalLayout")
 
+
+        # opendrive 创建
+        self.btnCreateXodr = QPushButton(self.centralWidget)
+        self.btnCreateXodr.setObjectName(u"btnCreateXodr")
+
         # 文件选择框
         self.groupBox_1 = QGroupBox(self.centralWidget)
         self.groupBox_1.setObjectName(u"groupBox_1")
@@ -34,7 +40,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("1.0 m", "0.1 m", "0.5 m", "5.0 m", "10.0 m"))
+        self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10.0 m", "20.0 m"))
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
         self.pb.setRange(0, 100)  # 进度对话框的范围设定
@@ -81,8 +87,8 @@ class Ui_TESS_API_EXAMPLEClass(object):
 
         xodr_label2 = QLabel()
         xodr_label2.setText("导入车道类型选择")
-        self.xodrCk1, self.xodrCk2 = QCheckBox('机动车道'), QCheckBox('非机动车道')
-        self.xodrCks = [self.xodrCk1, self.xodrCk2]
+
+        self.xodrCks = [QCheckBox(LANE_TYPE) for LANE_TYPE in set(LANE_TYPE_MAPPING.values())]
         for i in self.xodrCks:
             i.setCheckState(QtCore.Qt.Checked)
 
@@ -91,7 +97,6 @@ class Ui_TESS_API_EXAMPLEClass(object):
 
         xodr_label3 = QLabel()
 
-        from opendrive2tess.utils.config import WIDTH_LIMIT
         context = "车道转换说明:\n"
         for lane_type, limit_data in WIDTH_LIMIT.items():
             split_limit = limit_data.get('split', None)
@@ -101,8 +106,9 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label3.setText(context)
 
         self.verticalLayout_4.addWidget(xodr_label2)
-        self.verticalLayout_4.addWidget(self.xodrCk1)
-        self.verticalLayout_4.addWidget(self.xodrCk2)
+        for xodrCk in self.xodrCks:
+            self.verticalLayout_4.addWidget(xodrCk)
+        # self.verticalLayout_4.addWidget(self.xodrCk2)
         self.verticalLayout_4.addWidget(self.btnShowXodr)
         self.verticalLayout_4.addWidget(xodr_label3)
 

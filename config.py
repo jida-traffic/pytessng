@@ -1,4 +1,4 @@
-IS_SAVE = True
+IS_SAVE = False  # 是否需要发送消息
 
 KAFKA_HOST = 'tengxunyun'
 KAFKA_PORT = 9092

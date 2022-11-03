@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PySide2.QtWidgets import QDockWidget
-from MyNet import *
+from MyNet_提取OD信息 import *
 # from utils.TestOpenDriveToTessng import MyNet
 from MySimulator import *
 from TESS_API_EXAMPLE import *
