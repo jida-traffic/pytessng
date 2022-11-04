@@ -65,6 +65,16 @@ def add_road(doc, roads):
         elevationProfile_node = doc.createElement('elevationProfile')
         road_node.appendChild(elevationProfile_node)
 
+        for elevation in road.elevations:
+            elevation_node = doc.createElement('elevation')
+            elevationProfile_node.appendChild(elevation_node)
+
+            elevation_node.setAttribute('s', str(elevation.s))
+            elevation_node.setAttribute('a', str(elevation.a))
+            elevation_node.setAttribute('b', str(elevation.b))
+            elevation_node.setAttribute('c', str(elevation.c))
+            elevation_node.setAttribute('d', str(elevation.d))
+
         # 超高程
         lateralProfile_node = doc.createElement('lateralProfile')
         road_node.appendChild(lateralProfile_node)
@@ -114,6 +124,7 @@ def add_road(doc, roads):
         laneSection_node.appendChild(right_node)
         laneSection_node.appendChild(left_node)
 
+        # 计算所有的车道
         all_lane_node = []
         for lane in road.lanes:
             lane_node = doc.createElement('lane')
@@ -123,8 +134,6 @@ def add_road(doc, roads):
             # 添加车道信息到映射表
             if isinstance(road, Road) and lane['lane']:
                 link_node_mapping[road.tess_id]['lanes_node'][lane['lane'].number()] = lane_node
-            # else:
-            #     connector_node_mapping[road.tess_id]['lanes_node'][lane['lane'].number()] = lane_node
 
             lane_node.setAttribute('id', str(lane['id']))
             lane_node.setAttribute('level', "false")
@@ -138,6 +147,7 @@ def add_road(doc, roads):
 
             roadMark_node.setAttribute('sOffset', "0")
 
+            # 添加车道宽度信息
             for width in lane['width']:
                 width_node = doc.createElement('width')
                 lane_node.appendChild(width_node)
@@ -148,7 +158,7 @@ def add_road(doc, roads):
                 width_node.setAttribute('c', str(width.c))
                 width_node.setAttribute('d', str(width.d))
 
-        # 此时所有的基础路段(link已经建立完成)
+        # 此时所有的基础路段(link)已经建立完成,对于连接段需要同步填充lanelink信息
         if isinstance(road, Connector):
             # 获取前置/后续连接关系
             from_link = road.fromLink
@@ -162,24 +172,21 @@ def add_road(doc, roads):
             # 添加 junction_id
             road_node.setAttribute('junction', junction_node.getAttribute('id'))
 
-            # 每组连接关系建立两对 connection
-            # 来路作为来路 from_road_node
+            # 分别建立来路/去路的连接关系，即每对连接关系建立 两个 connection
+            # 来路作为来路/去路 from_road_node/to_road_node
             for incoming_road_node in [from_road_node, to_road_node]:
                 connection_node = doc.createElement('connection')
                 junction_node.appendChild(connection_node)
+                contactPoint = 'start' if incoming_road_node == from_road_node else 'end'
 
-                if incoming_road_node == from_road_node:
-                    contactPoint = 'start'
-                else:
-                    contactPoint = 'end'
-
-
+                # 建立连接node
                 connection_node.setAttribute('id', str(road.junction.connection_count))
                 road.junction.connection_count += 1
                 connection_node.setAttribute('incomingRoad', incoming_road_node.getAttribute('id'))
                 connection_node.setAttribute('connectingRoad', road_node.getAttribute('id'))
                 connection_node.setAttribute('contactPoint', contactPoint)
 
+                # 获取所有的来路&去路
                 from_lane_numbers, to_lane_numbers = set(), set()
                 for laneConnector in road.connector.laneConnectors():
                     from_lane_numbers.add(laneConnector.fromLane().number())
@@ -187,30 +194,24 @@ def add_road(doc, roads):
                 from_lane_numbers = sorted(list(from_lane_numbers))
                 to_lane_numbers = sorted(list(to_lane_numbers))
 
+                # 针对连接关系建立 lanelink
                 for laneConnector in road.connector.laneConnectors():
                     incoming_road_node_info = from_road_node_info if contactPoint == 'start' else to_road_node_info
                     incoming_lane_number = laneConnector.fromLane().number() if contactPoint == 'start' else laneConnector.toLane().number()
-                    incoming_lane_node = incoming_road_node_info['lanes_node'][incoming_lane_number]
+                    incoming_lane_node = incoming_road_node_info['lanes_node'][incoming_lane_number] # 来路/去路 node
 
-                    # 来路在其所在连接段的车道位置
+                    # 通过 来路/去路 在其所在路段的车道编号，据此获取 被连接的车道（连接段上）及其id
                     incoming_lane_index = from_lane_numbers.index(incoming_lane_number) if contactPoint == 'start' else to_lane_numbers.index(incoming_lane_number)
+                    connector_lane_node = right_node.childNodes[- incoming_lane_index - 1]
 
-                    incoming_lane_id = incoming_lane_node.getAttribute('id')
-
-                    # 被连接的车道（连接段上）,取右侧车道，反序列获取,连接段没有车道编号，所以直接采用下标顺序获取一个
-                    connector_lane_count = len(right_node.childNodes)  # 车道数取的是前后被连接道路的最大数量
-                    # connector_lane_id = right_node.childNodes[connector_lane_count - incoming_lane_index - 1].getAttribute('id')
-                    connector_lane_id = right_node.childNodes[- incoming_lane_index - 1].getAttribute('id')
-
+                    # 创建 laneLink
                     laneLink_node = doc.createElement('laneLink')
                     connection_node.appendChild(laneLink_node)
 
-                    laneLink_node.setAttribute('from', incoming_lane_id)
-                    laneLink_node.setAttribute('to', connector_lane_id)
+                    laneLink_node.setAttribute('from', incoming_lane_node.getAttribute('id'))
+                    laneLink_node.setAttribute('to', connector_lane_node.getAttribute('id'))
                     # successor_node = doc.createElement('successor')
                     # link_node.appendChild(successor_node)
-
-
 
                 # for laneConnector in road.connector.laneConnectors():
                 #     from_lane_number, to_lane_number = laneConnector.fromLane().number(), laneConnector.toLane().number()
