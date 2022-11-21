@@ -11,7 +11,7 @@ from threading import Thread
 from tess2xodr import Connector, Junction
 from tess2xodr import Road
 from create_node import init_doc, add_road, add_junction
-
+from xml.dom import minidom
 
 class MySignals(QObject):
     # 定义一种信号，因为有文本框和进度条两个类，此处要四个参数，类型分别是： QPlainTextEdit 、 QProgressBar、字符串和整形数字
@@ -41,9 +41,16 @@ class TESS_API_EXAMPLE(QMainWindow):
         iface = tngIFace()
         netiface = iface.netInterface()
 
-        # # 记录所有的连接关系
-        # 原则上，一个连接面域内存在三个及其以上的的 link(一个以上的连接关系) 称之为junction，否则为 connector
-        # allConnectorArea = netiface.allConnectorArea()[0].allConnector()[0].laneConnectors()[0].fromLane().id()
+        if not netiface.linkCount():
+            return
+
+        xodrSuffix = "OpenDrive Files (*.xodr)"
+        dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
+        file_path, filtr = QFileDialog.getSaveFileName(None, "文件保存", dbDir, xodrSuffix)
+        if not file_path:
+            return
+
+        # 因为1.4 不支持多个前继/后续路段/车道，所以全部使用 junction 建立连接关系
         connecors = []
         junctions = []
         for ConnectorArea in netiface.allConnectorArea():
@@ -57,40 +64,18 @@ class TESS_API_EXAMPLE(QMainWindow):
         for link in netiface.links():
             roads.append(Road(link))
 
-        # 连接段 转 路段
-        # connecors = []
-        # for connector in netiface.connectors():  # 连接段
-        #     connecors.append(Connector(connector))
-        # for laneConnector in connector.laneConnectors():  # 车道连接关系
-        #     from_lane, to_lane = laneConnector.fromLane(), laneConnector.toLane()
-        # leftBreakPoint3Ds
-        # 前后连接路段，根据前后路段数创建连接段，优先保证左侧车道的宽度，右侧车道平滑处理
-
         # 路网绘制成功后，写入xodr文件
         doc = init_doc(None)
         # 绘制所有的junction
         doc = add_junction(doc, junctions)
-
         # 绘制所有的路段（link/connector）
         doc = add_road(doc, roads + connecors)
-        filename = 'Data/test.xodr'
         # 开始写xml文档
-        # with open('Data/test.xodr', 'w', encoding="utf-8") as fp:
-        #     doc.writexml(fp, indent="\t", newl='\n')
-
-        # coding:utf-8
-        import xml.dom.minidom
         uglyxml = doc.toxml()
-        xml = xml.dom.minidom.parseString(uglyxml)
+        xml = minidom.parseString(uglyxml)
         xml_pretty_str = xml.toprettyxml()
-
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(xml_pretty_str)
-
-        pass
-
-
-
 
     def openNet(self):
         xodrSuffix = "OpenDrive Files (*.xodr)"
@@ -125,7 +110,7 @@ class TESS_API_EXAMPLE(QMainWindow):
             my_signal = MySignals()
             pb = self.ui.pb
 
-            step = float(self.ui.xodrStep.currentText().split(" ")[0])
+            step_length = float(self.ui.xodrStep.currentText().split(" ")[0])
             self.network = TessNetwork(netFilePath)
 
             # 主线程连接信号
@@ -135,8 +120,8 @@ class TESS_API_EXAMPLE(QMainWindow):
                 "signal": my_signal.text_print,
                 "pb": pb
             }
-            filters = None # list(LANE_TYPE_MAPPING.keys())
-            thread = Thread(target=self.network.convert_network, args=(step, filters, context))
+            filters = None  # list(LANE_TYPE_MAPPING.keys())
+            thread = Thread(target=self.network.convert_network, args=(step_length, filters, context))
             thread.start()
 
 

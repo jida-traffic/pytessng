@@ -43,11 +43,9 @@ def add_junction(doc, junctions):
     return doc
 
 
-
 def add_road(doc, roads):
     root = doc.getElementsByTagName('OpenDRIVE')[0]
     for road in roads:
-        print(road.id)
         road_node = doc.createElement('road')
         root.appendChild(road_node)
         # 添加 link 映射
@@ -172,6 +170,7 @@ def add_road(doc, roads):
             # 添加 junction_id
             road_node.setAttribute('junction', junction_node.getAttribute('id'))
 
+            new_connect_mapping = collections.defaultdict(lambda :{"from": None, "connector": None, "to": None})
             # 分别建立来路/去路的连接关系，即每对连接关系建立 两个 connection
             # 来路作为来路/去路 from_road_node/to_road_node
             for incoming_road_node in [from_road_node, to_road_node]:
@@ -195,14 +194,25 @@ def add_road(doc, roads):
                 to_lane_numbers = sorted(list(to_lane_numbers))
 
                 # 针对连接关系建立 lanelink
+                # TODO junction 定义的lanelink from或to是junction内部的，所以为了完整的看到向后连接的，需要每次建立两个lanelink
+                # 否则会导致 A-B 变成 A-C’，C''-B, 最终 A 无法连到B
                 for laneConnector in road.connector.laneConnectors():
                     incoming_road_node_info = from_road_node_info if contactPoint == 'start' else to_road_node_info
                     incoming_lane_number = laneConnector.fromLane().number() if contactPoint == 'start' else laneConnector.toLane().number()
                     incoming_lane_node = incoming_road_node_info['lanes_node'][incoming_lane_number] # 来路/去路 node
 
-                    # 通过 来路/去路 在其所在路段的车道编号，据此获取 被连接的车道（连接段上）及其id
-                    incoming_lane_index = from_lane_numbers.index(incoming_lane_number) if contactPoint == 'start' else to_lane_numbers.index(incoming_lane_number)
-                    connector_lane_node = right_node.childNodes[- incoming_lane_index - 1]
+                    key = 'from' if contactPoint == 'start' else "to"
+                    connector_name = f"{laneConnector.fromLane().number()}_{laneConnector.toLane().number()}"
+                    new_connect_mapping[connector_name][key] = incoming_lane_node
+
+                    # 为了保证原tessng的连接关系(连接段不许变道)，记录第一次lanelink的连接关系，第二次采用第一次lanelink的连接段车道
+                    if new_connect_mapping[connector_name]['connector']:  # 说明另一方已经被记录过了
+                        connector_lane_node = new_connect_mapping[connector_name]['connector']
+                    else:
+                        # 通过 来路/去路 在其所在路段的车道编号，据此获取 被连接的车道（连接段上）及其id
+                        incoming_lane_index = from_lane_numbers.index(incoming_lane_number) if contactPoint == 'start' else to_lane_numbers.index(incoming_lane_number)
+                        connector_lane_node = right_node.childNodes[- incoming_lane_index - 1]  # 取右侧车道，默认左侧车道为空
+                        new_connect_mapping[connector_name]['connector'] = connector_lane_node
 
                     # 创建 laneLink
                     laneLink_node = doc.createElement('laneLink')
@@ -210,6 +220,7 @@ def add_road(doc, roads):
 
                     laneLink_node.setAttribute('from', incoming_lane_node.getAttribute('id'))
                     laneLink_node.setAttribute('to', connector_lane_node.getAttribute('id'))
+
                     # successor_node = doc.createElement('successor')
                     # link_node.appendChild(successor_node)
 
