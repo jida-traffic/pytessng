@@ -97,7 +97,7 @@ class BaseRoad:
         right_points = BaseRoad.qtpoint2point(qt_right_points)
 
         deviation_curves = []
-        # 车道宽度计算，以左侧车道为基础，向右偏移（向 tessng 看齐）,假设所有车道宽度线性变化
+        # 车道宽度计算，以左侧车道为基础，向右偏移（向tessng看齐）,假设所有车道宽度线性变化
         s = 0
         for index in range(len(left_points) - 1):
             left_start_point, left_end_point = left_points[index], left_points[index + 1]
@@ -125,7 +125,9 @@ class BaseRoad:
             # if calc_singal and (start_signal != -1 or end_signal != -1):
             #     print('error')  # TODO 在非中心车道计算过程中，理论上右侧车道的相对角度永远为负
 
-            deviation_curves.append(Curve(s=s, a=a, b=b, c=0, d=0))  # 直线段 c=0, d=0
+            deviation_curves.append(
+                Curve(s=s, a=a, b=b, c=0, d=0)  # 直线段 c=0, d=0
+            )
             s += forward_distance
 
         return deviation_curves
@@ -185,7 +187,7 @@ class Road(BaseRoad):
 
 
 class Connector(BaseRoad):
-    def __init__(self, connector, junction):
+    def __init__(self, connector, laneConnector, junction):
         super().__init__()
 
         self.junction = junction
@@ -193,6 +195,8 @@ class Connector(BaseRoad):
         self.connector = connector
         self.fromLink = connector.fromLink()
         self.toLink = connector.toLink()
+        self.laneConnector = laneConnector
+        self.id = f"{laneConnector.fromLane().number()}_{laneConnector.toLane().number()}"
 
         self.lane_offsets = []  # 连接段选取最左侧边界作为参考线，不会有offset
         # # 默认 车道方向只有参考线方向
@@ -202,39 +206,17 @@ class Connector(BaseRoad):
 
     # 添加车道
     def add_lanes(self):
-        # 获取连接段的左右边界点序列，用来后续分配给各车道的宽度
-        # 采用两侧的连接段的的左右点序列连接段的左右边界点序列
-        connector_left_points = [np.array(_) for _ in self.qtpoint2point(self.connector.laneConnectors()[-1].leftBreakPoint3Ds())]
-        connector_right_points = [np.array(_) for _ in self.qtpoint2point(self.connector.laneConnectors()[0].rightBreakPoint3Ds())]
-        # 采用面域的左右点序列连接段的左右边界点序列,暂时没有这个属性
-        # connector_left_points = [np.array(_) for _ in self.qtpoint2point(self.connector.leftBreakPoint3Ds())]
-        # connector_right_points = [np.array(_) for _ in self.qtpoint2point(self.connector.rightBreakPoint3Ds())]
-
-        # 计算需要建立的连接段上的车道数量
-        from_lanes, to_lanes = set(), set()
-        for laneConnector in self.connector.laneConnectors():
-            from_lanes.add(laneConnector.fromLane())
-            to_lanes.add(laneConnector.toLane())
-        lane_count = max(len(from_lanes), len(to_lanes))
+        # 每个junction 仅有一个车道
+        connector_left_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.leftBreakPoint3Ds())]
+        connector_right_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.rightBreakPoint3Ds())]
 
         # 计算连接段上各车道的左右边界
-        all_lane_points = []
-        # TODO 保证左右点数量相同
-        point_count = min(len(connector_left_points), len(connector_right_points))  # 点位过少，会导致车道沿参考线垂直向左右延申，容易错误
-        connector_left_points = [i[0] for i in np.array_split(connector_left_points, point_count)]
-        connector_right_points = [i[0] for i in np.array_split(connector_right_points, point_count)]
-
-        # from matplotlib import pyplot as plt
-        # plt.plot([i[0] for i in connector_right_points], [i[1] for i in connector_right_points])
-        # plt.show()
-
-        for lane_num in range(lane_count):  # 此处采用的是平均分配，每条车道宽度变化一致，也可使用少数车道宽度稳定，其他车道渐变的方式
-            all_lane_points.append(
-                    {
-                        'left_points': [connector_left_points[index] + (connector_right_points[index] - connector_left_points[index]) / lane_count * lane_num for index in range(point_count)],
-                        'right_points': [connector_left_points[index] + (connector_right_points[index] - connector_left_points[index]) / lane_count * (lane_num + 1) for index in range(point_count)],
-                    }
-            )
+        all_lane_points = [
+            {
+                "left_points": connector_left_points,
+                "right_points": connector_right_points,
+            }
+        ]
 
         # 计算所有的车道
         lane_id = -1
