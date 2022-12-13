@@ -1,7 +1,7 @@
 import os
 from lxml import etree
-from opendrive2tessng.opendrive2lanelet.opendriveparser.parser import parse_opendrive
-from opendrive2tessng.utils.network_utils import Network
+from utils.network_utils import Network
+from opendrive2lanelet.opendriveparser.parser import parse_opendrive
 
 
 def main(xodr_file: str) -> Network:
