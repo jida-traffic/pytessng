@@ -134,6 +134,7 @@ class Road(BaseRoad):
     def __init__(self, link):
         super().__init__()
 
+        self.type = 'link'
         self.tess_id = link.id()
         self.link = link
 
@@ -180,80 +181,47 @@ class Road(BaseRoad):
             #         }
             #     )
             #     lane_id -= 1
-        return None
+        return
 
 
+# 为每个车道连接建立 connector，仅一条车道
 class Connector(BaseRoad):
-    def __init__(self, connector, junction):
+    def __init__(self, laneConnector, junction):
         super().__init__()
 
+        self.type = 'connector'
         self.junction = junction
-        self.tess_id = connector.id()
-        self.connector = connector
-        self.fromLink = connector.fromLink()
-        self.toLink = connector.toLink()
+        self.laneConnector = laneConnector
+        self.fromLink = laneConnector.fromLane().link()
+        self.toLink = laneConnector.toLane().link()
+        # self.tess_id = None
 
-        self.lane_offsets = []  # 连接段选取最左侧边界作为参考线，不会有offset
-        # # 默认 车道方向只有参考线方向
-        geometry_points = self.add_lanes()
+        self.lane_offsets = []  # 连接段选取左侧点序列作为参考线，不会有offset
+        # 默认车道方向即参考线方向
+        self.add_lane()
+        # TODO 线的高程存在问题，待胡工更新
+        geometry_points = self.qtpoint2point(laneConnector.leftBreakPoint3Ds())
         self.geometrys, self.length = self.calc_geometry(geometry_points)
         self.elevations = self.calc_elevation(geometry_points)   # 用车道中心线计算高程
 
-    # 添加车道
-    def add_lanes(self):
-        # 获取连接段的左右边界点序列，用来后续分配给各车道的宽度
-        # 采用两侧的连接段的的左右点序列连接段的左右边界点序列
-        connector_left_points = [np.array(_) for _ in self.qtpoint2point(self.connector.laneConnectors()[-1].leftBreakPoint3Ds())]
-        connector_right_points = [np.array(_) for _ in self.qtpoint2point(self.connector.laneConnectors()[0].rightBreakPoint3Ds())]
-        # 采用面域的左右点序列连接段的左右边界点序列,暂时没有这个属性
-        # connector_left_points = [np.array(_) for _ in self.qtpoint2point(self.connector.leftBreakPoint3Ds())]
-        # connector_right_points = [np.array(_) for _ in self.qtpoint2point(self.connector.rightBreakPoint3Ds())]
-
-        # 计算需要建立的连接段上的车道数量
-        from_lanes, to_lanes = set(), set()
-        for laneConnector in self.connector.laneConnectors():
-            from_lanes.add(laneConnector.fromLane())
-            to_lanes.add(laneConnector.toLane())
-        lane_count = max(len(from_lanes), len(to_lanes))
-
-        # 计算连接段上各车道的左右边界
-        all_lane_points = []
-        # TODO 保证左右点数量相同
-        point_count = min(len(connector_left_points), len(connector_right_points))  # 点位过少，会导致车道沿参考线垂直向左右延申，容易错误
-        connector_left_points = [i[0] for i in np.array_split(connector_left_points, point_count)]
-        connector_right_points = [i[0] for i in np.array_split(connector_right_points, point_count)]
-
-        # from matplotlib import pyplot as plt
-        # plt.plot([i[0] for i in connector_right_points], [i[1] for i in connector_right_points])
-        # plt.show()
-
-        for lane_num in range(lane_count):  # 此处采用的是平均分配，每条车道宽度变化一致，也可使用少数车道宽度稳定，其他车道渐变的方式
-            all_lane_points.append(
-                    {
-                        'left_points': [connector_left_points[index] + (connector_right_points[index] - connector_left_points[index]) / lane_count * lane_num for index in range(point_count)],
-                        'right_points': [connector_left_points[index] + (connector_right_points[index] - connector_left_points[index]) / lane_count * (lane_num + 1) for index in range(point_count)],
-                    }
-            )
+    # 添加车道, junction 仅一条右侧车道 + 中心车道
+    def add_lane(self):
+        left_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.leftBreakPoint3Ds())]
+        right_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.rightBreakPoint3Ds())]
 
         # 计算所有的车道
         lane_id = -1
         direction = 'right'
-        for lane_points in all_lane_points:  # 从中心车道向右侧展开
-            widths = self.calc_deviation_curves(lane_points["left_points"], lane_points["right_points"], calc_singal=True)
-            self.lanes.append(
-                {
-                    'width': widths,
-                    'type': 'driving',  # TODO lane.actionType(),
-                    'id': lane_id,
-                    'direction': direction,
-                    'lane': None,
-                }
-            )
-            lane_id -= 1
-
-        # 参考线取最左侧车道的左边界
-        geometry_points = all_lane_points[0]['left_points']
-        return geometry_points  # 返回参考线点序列
+        widths = self.calc_deviation_curves(left_points, right_points, calc_singal=True)
+        self.lanes.append(
+            {
+                'width': widths,
+                'type': 'driving',  # TODO lane.actionType(),
+                'id': lane_id,
+                'direction': direction,
+                'lane': None,
+            }
+        )
 
 
 class Junction:

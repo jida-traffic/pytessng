@@ -178,7 +178,7 @@ class Network:
                             xy_limit[2] = min(xy_limit[2], position[1])
                             xy_limit[3] = max(xy_limit[3], position[1])
             self.xy_move = (- sum(xy_limit[:2]) / 2, - sum(xy_limit[2:]) / 2) if xy_limit else (0, 0)
-            self.size = (max(abs(xy_limit[0]), abs(xy_limit[1])), max(abs(xy_limit[2]), abs(xy_limit[3])))
+            self.size = (max(abs(xy_limit[0]), abs(xy_limit[1])) * 2, max(abs(xy_limit[2]), abs(xy_limit[3])) * 2)
             print(f"路网移动参数: {self.xy_move}")
 
             for lane_name, lane_info in lanes_info.items():
@@ -210,7 +210,7 @@ class Network:
             netiface: TESSNG 路网子接口
         """
         netiface = netiface or tngIFace().netInterface()
-        # 设置场景显示区域
+        # 设置场景显示区域 TODO 暂时不生效
         netiface.setSceneSize(*self.size)
 
         # 会改变数据结构，可能在重复创建时有影响，所以创建新的数据备份

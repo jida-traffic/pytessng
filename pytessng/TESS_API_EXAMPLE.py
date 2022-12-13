@@ -142,11 +142,9 @@ class TESS_API_EXAMPLE(QMainWindow):
             junction = Junction(ConnectorArea)
             junctions.append(junction)
             for connector in ConnectorArea.allConnector():
-                # # 为所有的连接面域创建road，关联至 junction
-                connecors.append(Connector(connector, junction))
                 # 为所有的 车道连接创建独立的road，关联至 junction
-                # for laneConnector in connector.laneConnectors():
-                #     connecors.append(Connector(connector, junction))
+                for laneConnector in connector.laneConnectors():
+                    connecors.append(Connector(laneConnector, junction))
 
         roads = []
         for link in netiface.links():
