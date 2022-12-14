@@ -17,7 +17,7 @@ def TessNgObject():
     # 本地数据库
     config = {
         # '__netfilepath': r"C:\TESSNG_2.0.0\Example\上海江桥收费站.tess",
-        '__netfilepath': r"C:\Users\yang\Desktop\test.tess",
+        # '__netfilepath': r"C:\Users\yang\Desktop\test.tess",
         '__workspace': workspace,
         '__custsimubysteps': True,
         '__simuafterload': False,

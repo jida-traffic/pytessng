@@ -1,5 +1,4 @@
 import struct
-import copy
 import json
 import socket
 import hashlib
@@ -51,7 +50,7 @@ class MyProcess:
         # TODO 主进程初始化子进程时启动,此(子)进程里保存了users，外部看不到,需要采用队列的方式
         # 子进程有一个websocket，用来与前端进行通信
         # producer 和 users 列表都在子进程初始化，不会影响主进程
-        producer = Producer(*args)  
+        producer = Producer(*args)
         # self.web = WebSocketUtil(port=WEB_PORT)
         # self.web.start_socket_server()
         while True:
@@ -125,6 +124,7 @@ def get_vehi_info(simuiface):
 class WebSocketUtil(object):
     global users
     users = set()
+
     def __init__(self, port=8765, max_wait_user=5):
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -176,7 +176,6 @@ class WebSocketUtil(object):
         # # 新的连接成功立马发一次数据
         data = {"message": "connect done"}
         self.send_msg(conn, bytes(json.dumps(data), encoding="utf-8"))
-
 
     # 向客户端发送数据
     def send_msg(self, conn, msg_bytes):

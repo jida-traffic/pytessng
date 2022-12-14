@@ -133,7 +133,7 @@ def connect_childs(links: Tessng.ILink, connector_mapping: Dict) -> None:
         if not (from_link and to_link and from_link_info['lane_ids'] and to_link_info['lane_ids']):
             continue
 
-        actionTypeMapping = collections.defaultdict(lambda : {"from": set(), 'to': set()})
+        actionTypeMapping = collections.defaultdict(lambda: {"from": set(), 'to': set()})
         for lane_id in from_link_info['lane_ids']:
             actionTypeMapping[from_link_info[lane_id].actionType()]['from'].add(lane_id)
         for lane_id in to_link_info['lane_ids']:

@@ -1,4 +1,5 @@
 import os
+
 from lxml import etree
 from utils.network_utils import Network
 from opendrive2lanelet.opendriveparser.parser import parse_opendrive
@@ -19,15 +20,6 @@ def main(xodr_file: str) -> Network:
 
     file_name = os.path.splitext(os.path.split(xodr_file)[-1])[0]
     network = Network(opendrive, file_name)
-    
-    # import collections
-    # road_signals = collections.defaultdict(list)
-    # for road in root_node.getroottree().findall('road'):
-    #     signals = road.find('signals') and road.find('signals').findall("signal") or []
-    #     for signal in signals:
-    #         road_signals[road.get('id')].append(dict(signal.items()))
-    # network.road_signals = road_signals
-
     return network
 
 

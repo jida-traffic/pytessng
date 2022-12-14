@@ -1,11 +1,11 @@
 import collections
 
+from collections import defaultdict
+from typing import List, Dict
 from matlab import linspace, sqrt
 from commonroad.scenario.scenario import Scenario
-from collections import defaultdict
-from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.opendrive import OpenDrive
 from opendrive2tessng.opendrive2lanelet.network import Network
-from typing import List, Dict
+from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.opendrive import OpenDrive
 from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.roadLanes import LaneSection
 from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.roadElevationProfile import ElevationRecord
 

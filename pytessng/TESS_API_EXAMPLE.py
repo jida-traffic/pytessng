@@ -231,15 +231,15 @@ class TESS_API_EXAMPLE(QMainWindow):
             return
 
 
-        # 简单绘制路网走向
-        from matplotlib import pyplot as plt
-        for value in self.network.network_info['roads_info'].values():
-            for points in value['road_points'].values():
-                x = [i['position'][0] for i in points['right_points']]
-                # x = [point['right_points'][['position']][0] for point in points]
-                y = [i['position'][1] for i in points['right_points']]
-                plt.plot(x, y)
-        plt.show()
+        # # 简单绘制路网走向
+        # from matplotlib import pyplot as plt
+        # for value in self.network.network_info['roads_info'].values():
+        #     for points in value['road_points'].values():
+        #         x = [i['position'][0] for i in points['right_points']]
+        #         # x = [point['right_points'][['position']][0] for point in points]
+        #         y = [i['position'][1] for i in points['right_points']]
+        #         plt.plot(x, y)
+        # plt.show()
 
         # 打开新底图
         iface = tngIFace()

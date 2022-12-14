@@ -25,6 +25,8 @@ LANE_TYPE_MAPPING = {
 point_require = 2
 POINT_REQUIRE = max(2, point_require)
 
+# 当 opendrive 连接段的首尾连接长度低于此值时，抛弃原有的点序列，使用自动连接
+MIN_CONNECTOR_LENGTH = None
 
 # 需要被处理的车道类型及处理参数
 WIDTH_LIMIT = {
@@ -37,7 +39,6 @@ WIDTH_LIMIT = {
     #     'join': 0.5,
     # },
 }
-
 
 # unity 信息提取的类型映射
 UNITY_LANE_MAPPING = {

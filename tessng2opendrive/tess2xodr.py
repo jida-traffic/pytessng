@@ -1,7 +1,8 @@
 import math
 import numpy as np
-from PySide2.QtGui import QVector3D
+
 from Tessng import m2p, p2m
+from PySide2.QtGui import QVector3D
 
 
 class BaseRoad:

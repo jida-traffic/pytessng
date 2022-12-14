@@ -1,7 +1,6 @@
 import collections
 import datetime
 import xml.dom.minidom
-from tess2xodr import Road, Connector
 
 
 class Doc:
