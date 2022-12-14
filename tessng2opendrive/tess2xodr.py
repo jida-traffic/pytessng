@@ -138,13 +138,17 @@ class Road(BaseRoad):
         self.tess_id = link.id()
         self.link = link
 
-        # 计算路段参考线及高程
-        geometry_points = self.qtpoint2point(self.link.centerBreakPoint3Ds())
+        # # 计算路段参考线及高程，这种方式可以保留路网原始的中心线作为参考线
+        # geometry_points = self.qtpoint2point(self.link.centerBreakPoint3Ds())
+        # # 计算中心车道偏移量
+        # self.lane_offsets = self.calc_deviation_curves(link.leftBreakPoint3Ds(), link.centerBreakPoint3Ds(), calc_singal=False)
+
+        # 直接用link左侧边界作为参考线，就不需要偏移量了
+        geometry_points = self.qtpoint2point(self.link.leftBreakPoint3Ds())
+        self.lane_offsets = []
+
         self.geometrys, self.length = self.calc_geometry(geometry_points)
         self.elevations = self.calc_elevation(geometry_points)  # 用车道中心线计算高程
-
-        # 计算中心车道偏移量
-        self.lane_offsets = self.calc_deviation_curves(link.leftBreakPoint3Ds(), link.centerBreakPoint3Ds(), calc_singal=False)
 
         # 计算车道及相关信息
         self.add_lane()
@@ -206,13 +210,14 @@ class Connector(BaseRoad):
 
     # 添加车道, junction 仅一条右侧车道 + 中心车道
     def add_lane(self):
-        left_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.leftBreakPoint3Ds())]
-        right_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.rightBreakPoint3Ds())]
+        # left_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.leftBreakPoint3Ds())]
+        # right_points = [np.array(_) for _ in self.qtpoint2point(self.laneConnector.rightBreakPoint3Ds())]
 
         # 计算所有的车道
         lane_id = -1
         direction = 'right'
-        widths = self.calc_deviation_curves(left_points, right_points, calc_singal=True)
+        # widths = self.calc_deviation_curves(left_points, right_points, calc_singal=True)
+        widths = self.calc_deviation_curves(self.laneConnector.leftBreakPoint3Ds(), self.laneConnector.rightBreakPoint3Ds(), calc_singal=True)
         self.lanes.append(
             {
                 'width': widths,

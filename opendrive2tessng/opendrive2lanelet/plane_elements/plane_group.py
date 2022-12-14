@@ -150,10 +150,14 @@ class ParametricLaneGroup:
                         # poses 匹配width成功后移除匹配的元素, 减去 parametric_lane.length，否则后续可能长度不够用
                         poses = [i - parametric_lane.length for i in poses[index:]]
                         break
-        # self.parametric_lanes.sort(key=lambda x:x.id_)
+            # 未能在poses中匹配上自己所在的区间，取空值
+            if not parametric_lane.id_ in parametric_lane_poses.keys():
+                parametric_lane_poses[parametric_lane.id_] = []
+
+        # self.parametric_lanes.sort(key=lambda x:x.id_) # 已经排序过了
         for parametric_lane in self.parametric_lanes:
-            # 通过 lane 点序列 获取 width 点序列， 特殊情况下，点序列可能为空
             if not parametric_lane_poses[parametric_lane.id_]:
+                # 通过 lane 点序列 获取 width 点序列， 特殊情况下，点序列可能为空 >> 原因是poses跨度较大，未能包含parametric_lane所在的区间
                 continue
             local_left_vertices, local_right_vertices = parametric_lane.calc_vertices(
                 precision=precision, poses=parametric_lane_poses[parametric_lane.id_]

@@ -210,7 +210,7 @@ class Network:
             netiface: TESSNG 路网子接口
         """
         netiface = netiface or tngIFace().netInterface()
-        # 设置场景显示区域 TODO 暂时不生效
+        # 设置场景显示区域
         netiface.setSceneSize(*self.size)
 
         # 会改变数据结构，可能在重复创建时有影响，所以创建新的数据备份
