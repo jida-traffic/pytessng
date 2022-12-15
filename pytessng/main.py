@@ -21,6 +21,7 @@ def TessNgObject():
         '__workspace': workspace,
         '__custsimubysteps': True,
         '__simuafterload': False,
+        "__allowspopup": False,
     }
 
     plugin = MyPlugin()
