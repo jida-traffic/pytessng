@@ -4,6 +4,8 @@ import numpy as np
 from Tessng import m2p, p2m
 from PySide2.QtGui import QVector3D
 
+from tessng2opendrive.config import LANE_TYPE_MAPPING
+
 
 class BaseRoad:
     Road_id = 1
@@ -165,7 +167,7 @@ class Road(BaseRoad):
             self.lanes.append(
                 {
                     'width': widths,
-                    'type': 'driving',  # TODO lane.actionType(),
+                    'type': LANE_TYPE_MAPPING.get(lane.actionType(), 'driving'),
                     'id': lane_id,
                     'direction': direction,
                     'lane': lane,

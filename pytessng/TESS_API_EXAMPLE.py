@@ -45,9 +45,9 @@ class TESS_API_EXAMPLE(QMainWindow):
 
         # TODO 合并路段, 需要添加车道类型判断，后续增加点位自合并的方法
         roads = {}
+
         class Road:
             def __init__(self):
-                # self.id = None
                 self.link = None
                 self.last_links = []
                 self.next_links = []
@@ -61,7 +61,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             last_road = roads.get(last_link.id(), Road())
             next_road = roads.get(next_link.id(), Road())
 
-
             last_road.link = last_link
             last_road.next_links.append(next_link.id())
             last_road.connectors.append(connector)
@@ -73,7 +72,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             roads[next_link.id()] = next_road
             roads[last_link.id()] = last_road
 
-
         def get_chain_by_next(road, link_group: list):
             if len(road.next_links) != 1:
                 # 有且仅有一个下游，才可以继续延伸
@@ -81,8 +79,9 @@ class TESS_API_EXAMPLE(QMainWindow):
             next_link_id = road.next_links[0]
             next_link = netiface.findLink(next_link_id)
             next_road = roads[next_link.id()]
-            # 判断下游 link 是否有且仅有 1 个上游，且车道数与当前link一致，若一致，加入链路并继续向下游寻找
-            if len(next_road.last_links) == 1 and road.link.laneCount() == next_road.link.laneCount():
+            # 判断下游 link 是否有且仅有 1 个上游，且车道数/车道类型与当前link一致，若一致，加入链路并继续向下游寻找
+            if len(next_road.last_links) == 1 and [lane.actionType() for lane in road.link.lanes()] == [
+                lane.actionType() for lane in next_road.link.lanes()]:
                 link_group.append(next_link)
                 get_chain_by_next(next_road, link_group)
             return
@@ -95,7 +94,8 @@ class TESS_API_EXAMPLE(QMainWindow):
             last_link = netiface.findLink(last_link_id)
             last_road = roads[last_link.id()]
             # 判断上游 link 是否有且仅有 1 个下游，且车道数与当前link一致，若一致，加入链路并继续向上游寻找
-            if len(last_road.next_links) == 1 and road.link.laneCount() == last_road.link.laneCount():
+            if len(last_road.next_links) == 1 and [lane.actionType() for lane in road.link.lanes()] == [
+                lane.actionType() for lane in last_road.link.lanes()]:
                 link_group.insert(0, last_link)
                 get_chain_by_last(last_road, link_group)
             return
@@ -103,21 +103,21 @@ class TESS_API_EXAMPLE(QMainWindow):
         link_groups = []
         exist_links = []
         for link_id, road in roads.items():
-            # 已经进行过查找的 link 不需要再次遍历
             if link_id in exist_links:
+                # 已经进行过查找的 link 不需要再次遍历
                 continue
 
-            # link_group 不能保存link对象，否则在优化过程中，部分路段可能被删除，对象将不存在
             link_group = [road.link]
             get_chain_by_next(road, link_group)
             get_chain_by_last(road, link_group)
 
             link_groups.append(link_group)
             exist_links += [i.id() for i in link_group]
-        # 判断是否有路段进行过重复查询，如果有，说明逻辑存在漏洞
-        print(link_groups)
-        print(len(exist_links), len(set(exist_links)))
 
+        # 判断是否有路段进行过重复查询，如果有，说明逻辑存在漏洞
+        if len(exist_links) != len(set(exist_links)):
+            QMessageBox.warning(None, "提示信息", "出现唯一性错误，请联系开发者")
+            return
 
         # 在调整的过程中，旧的link在不断删除，同时新的link被创建，所以需要建立映射关系表，connector也有可能在消失，所以不再被记录，通过上下游link获取connector
         old_new_link_mapping = {}
@@ -125,20 +125,11 @@ class TESS_API_EXAMPLE(QMainWindow):
             old_new_link_mapping[link.id()] = link.id()
 
         # TODO 根据信息做路网调整, 在调整过程中，未遍历到的 link_group 不会被调整，即不会丢失对象
-
         # 分步做，先统计原始的连接段信息，方便后续迭代
         new_connectors = []
         for link_group in link_groups:
             if len(link_group) == 1:
                 continue
-
-            # new_connector_info = {
-            #     "last_link_ids": [],
-            #     "last_connectors": [],
-            #     "next_link_ids": [],
-            #     "next_connectors": [],
-            #     'link_group': link_group,
-            # }
             connector_info = []
 
             # 记录原始信息，方便后续重新创建路段及连接段
@@ -201,7 +192,7 @@ class TESS_API_EXAMPLE(QMainWindow):
             new_link_info = {
                 'center': [],
                 'name': '',
-                'lanes': collections.defaultdict(lambda : {
+                'lanes': collections.defaultdict(lambda: {
                     'center': [],
                     'left': [],
                     'right': [],
@@ -212,7 +203,7 @@ class TESS_API_EXAMPLE(QMainWindow):
 
             # 先记录id
             link_group_ids = [i.id() for i in link_group]
-            for link in link_group: # 有序的
+            for link in link_group:  # 有序的
                 # TODO 暂时不记录中间连接段的点序列
                 new_link_info['center'] += link.centerBreakPoint3Ds()
                 for lane in link.lanes():
@@ -242,11 +233,6 @@ class TESS_API_EXAMPLE(QMainWindow):
             # 更新映射表
             for old_link_id in link_group_ids:
                 old_new_link_mapping[old_link_id] = new_link_obj.id()
-            print(new_link_obj.id(), link_group_ids)
-            # for connector in new_connectors:
-            #     if connector['link_group'] == link_group:
-            #         connector['new_link_id'] = new_link_obj
-            #         break
 
         # 创建新的连接段,
         # 如果某连接段上下游均进行了路段合并，则连接段会被重新重复创建，过滤
@@ -262,7 +248,8 @@ class TESS_API_EXAMPLE(QMainWindow):
                     continue
                 netiface.createConnector3DWithPoints(new_from_id,
                                                      new_to_id,
-                                                     [i[0] + 1 for i in connector['connector']], [i[1] + 1 for i in connector['connector']],
+                                                     [i[0] + 1 for i in connector['connector']],
+                                                     [i[1] + 1 for i in connector['connector']],
                                                      connector['lanesWithPoints3'],
                                                      ""
                                                      )
