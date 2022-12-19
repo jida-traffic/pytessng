@@ -8,9 +8,9 @@ LANE_TYPE_MAPPING = {
     'exit': '机动车道',
     'connectingRamp': '机动车道',
 
-    'shoulder': '机动车道',  # 应急车道
+    'shoulder': '机动车道',
     # 'border': '',
-    'stop': '机动车道',  # 应急车道
+    'stop': '应急车道',
     # 'none': '',
     # 'redtricted': '',
     # 'parking': '',
@@ -18,7 +18,7 @@ LANE_TYPE_MAPPING = {
     # 'curb': '',
 
     'biking': '非机动车道',
-    'sidewalk': '非机动车道',  # 人行道
+    'sidewalk': '非机动车道',
 }
 
 # 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2

@@ -35,7 +35,8 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10.0 m", "0.1 m"))
+        # self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10.0 m", "0.1 m"))
+        self.xodrStep.addItems(("5 m", "50 m", "100 m", "1000 m"))
 
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
@@ -53,6 +54,10 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnAdjustNetwork = QPushButton(self.centralWidget)
         self.btnAdjustNetwork.setObjectName(u"btnAdjustNetwork")
 
+        # 路段断开
+        self.btnSplitLink = QPushButton(self.centralWidget)
+        self.btnSplitLink.setObjectName(u"btnSplitLink")
+
         # self.verticalLayout_0.addWidget(self.pd)
         self.verticalLayout_0.addWidget(xodr_label1)
         self.verticalLayout_0.addWidget(self.xodrStep)
@@ -60,6 +65,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_0.addWidget(self.btnOpenNet)
         self.verticalLayout_0.addWidget(self.btnCreateXodr)
         self.verticalLayout_0.addWidget(self.btnAdjustNetwork)
+        self.verticalLayout_0.addWidget(self.btnSplitLink)
 
         # 信息窗
         self.groupBox_3 = QGroupBox(self.centralWidget)
@@ -156,6 +162,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnOpenNet.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u9009\u62e9\u6587\u4ef6", None))
         self.btnCreateXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"导出opendrive文件", None))
         self.btnAdjustNetwork.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路网文件自调整", None))
+        self.btnSplitLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段断开", None))
         # self.btnStartSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u542f\u52a8\u4eff\u771f", None))
         # self.btnPauseSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u6682\u505c\u4eff\u771f", None))
         # self.btnStopSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u505c\u6b62\u4eff\u771f", None))
