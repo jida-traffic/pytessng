@@ -5,6 +5,7 @@ import numpy as np
 from PySide2.QtGui import *
 from Tessng import *
 
+
 def qtpoint2point(qtpoints):
     points = []
     for qtpoint in qtpoints:
@@ -12,6 +13,7 @@ def qtpoint2point(qtpoints):
             [m2p(qtpoint.x()), - m2p(qtpoint.y()), m2p(qtpoint.z())] if isinstance(qtpoint, QVector3D) else qtpoint
         )
     return points
+
 
 def point2qtpoint(points):
     qtpoints = []
@@ -96,11 +98,83 @@ class AdjustNetwork:
         new_points_list = [point2qtpoint(i) for i in new_points_list]
         return new_points_list
 
+    def calc_split_parameter(self, link, split_link_info):
+        center_points = link.centerBreakPoint3Ds()
+        center_points = qtpoint2point(center_points)
+
+        sum_length = 0
+        last_x, last_y, last_z = center_points[0]
+        lengths = [0] + split_link_info["lengths"]
+        for point_index, point in enumerate(center_points):
+            x, y, z = point
+            distance = np.sqrt((x - last_x) ** 2 + (y - last_y) ** 2)
+
+            new_sum_length = sum_length + distance
+            for split_index, split_length in enumerate(lengths):
+                if split_index == 0:
+                    continue
+                if new_sum_length < lengths[split_index - 1]:
+                    continue
+                elif new_sum_length >= lengths[split_index - 1] and new_sum_length < lengths[split_index]:
+                    # 区间命中
+                    split_link_info['index'][split_index - 1].append(point_index)
+                    # TODO 区间已经命中，可以 break 了
+                # elif sum_length >= lengths[split_index - 1] and new_sum_length > split_length:
+                #     # 新点超出范围,计算比例
+                #     ratio = (split_length - sum_length) / distance
+                #     split_link_info['ratio'][split_index - 1] = ratio  # 此处不需要记录 首点的比例，因为当需要用到首点时，采用上一点的断点计算
+                else:  # new_sum_length >= lengths[split_index]
+                    # 如果此处并没有 ratio，说明这是第一次被匹配上，需要进行ratio 计算
+                    if split_link_info['ratio'][split_index - 1] is None:
+                        ratio = (split_length - sum_length) / distance
+                        split_link_info['ratio'][split_index - 1] = ratio  # 此处不需要记录 首点的比例，因为当需要用到首点时，采用上一点的断点计算
+            sum_length = new_sum_length
+
+        # 计算完成，可以进行分割
+        if len(split_link_info['lengths']) != len(split_link_info['index']) or len(split_link_info['lengths']) != len(
+                split_link_info['index']):
+            raise 1  # 初步判断
+
+    def calc_split_links_info(self, link, split_link_info):
+        # 计算新的 link 信息
+        indexs_list = split_link_info['index']
+        ratios = split_link_info['ratio']
+        link_center_points = self.calc_points(link.centerBreakPoint3Ds(), indexs_list, ratios)
+
+        new_links_info = [
+            {
+                'center': link_center_points[index],
+                'name': f"{link.name()}/{index}",
+                'lanes': collections.defaultdict(lambda: {
+                    'center': [],
+                    'left': [],
+                    'right': [],
+                    'type': '',
+                    'attr': {},
+                }),
+                'old_link_id': link.id(),
+            } for index in range(len(indexs_list) + 1)
+        ]
+
+        for lane in link.lanes():
+            center_points = self.calc_points(lane.centerBreakPoint3Ds(), indexs_list, ratios)
+            left_points = self.calc_points(lane.leftBreakPoint3Ds(), indexs_list, ratios)
+            right_points = self.calc_points(lane.rightBreakPoint3Ds(), indexs_list, ratios)
+            for index in range(len(indexs_list) + 1):  # 被分割后的 link 数量,比分割点数大 1
+                new_links_info[index]['lanes'][lane.number()] = {
+                    'center': center_points[index],
+                    'left': left_points[index],
+                    'right': right_points[index],
+                    'type': lane.actionType(),
+                    'attr': {},
+                }
+        return new_links_info
+
     def split_link(self, file_path):
         reader = csv.reader(open(file_path, 'r', encoding='utf-8'))
         next(reader)
 
-        split_links_info = collections.defaultdict(lambda : {'lengths': [], 'index': [], 'ratio': []})
+        split_links_info = collections.defaultdict(lambda: {'lengths': [], 'index': [], 'ratio': []})
         for row in reader:
             try:
                 row = [int(i) for index, i in enumerate(row)]
@@ -112,7 +186,8 @@ class AdjustNetwork:
             link = self.netiface.findLink(link_id)
             if not link:
                 return f"link: {link_id} 不存在"
-            if min(points_length) <= 0 or max(points_length) >= link.length() or len(points_length) != len(set(points_length)):
+            if min(points_length) <= 0 or max(points_length) >= link.length() or len(points_length) != len(
+                    set(points_length)):
                 return f"link: {row[0]} 长 {link.length()}, 断点长度输入不准确"
 
             split_links_info[link_id]['lengths'] = points_length
@@ -136,74 +211,11 @@ class AdjustNetwork:
         # 计算新的路段信息
         for link_id, split_link_info in split_links_info.items():
             link = self.netiface.findLink(link_id)
-            center_points = link.centerBreakPoint3Ds()
-            center_points = qtpoint2point(center_points)
+            # 根据 link 实际信息 丰富 切割参数 > split_link_info
+            self.calc_split_parameter(link, split_link_info)
+            # 获取切割详情，含点序列等基本信息
+            new_links_info = self.calc_split_links_info(link, split_link_info)
 
-            sum_length = 0
-            last_x, last_y, last_z = center_points[0]
-            lengths = [0] + split_link_info["lengths"]
-            for point_index, point in enumerate(center_points):
-                x, y, z = point
-                distance = np.sqrt((x - last_x) ** 2 + (y - last_y) ** 2)
-
-                new_sum_length = sum_length + distance
-                for split_index, split_length in enumerate(lengths):
-                    if split_index == 0:
-                        continue
-                    if new_sum_length < lengths[split_index - 1]:
-                        continue
-                    elif new_sum_length >= lengths[split_index - 1] and new_sum_length < lengths[split_index]:
-                        # 区间命中
-                        split_link_info['index'][split_index - 1].append(point_index)
-                        # TODO 区间已经命中，可以 break 了
-                    # elif sum_length >= lengths[split_index - 1] and new_sum_length > split_length:
-                    #     # 新点超出范围,计算比例
-                    #     ratio = (split_length - sum_length) / distance
-                    #     split_link_info['ratio'][split_index - 1] = ratio  # 此处不需要记录 首点的比例，因为当需要用到首点时，采用上一点的断点计算
-                    else:  # new_sum_length >= lengths[split_index]
-                        # 如果此处并没有 ratio，说明这是第一次被匹配上，需要进行ratio 计算
-                        if split_link_info['ratio'][split_index - 1] is None:
-                            ratio = (split_length - sum_length) / distance
-                            split_link_info['ratio'][split_index - 1] = ratio  # 此处不需要记录 首点的比例，因为当需要用到首点时，采用上一点的断点计算
-                sum_length = new_sum_length
-
-            # 计算完成，可以进行分割
-            if len(split_link_info['lengths']) != len(split_link_info['index']) or len(split_link_info['lengths']) != len(
-                    split_link_info['index']):
-                raise 1  # 初步判断
-
-            # 计算新的 link 信息
-            indexs_list = split_link_info['index']
-            ratios = split_link_info['ratio']
-            link_center_points = self.calc_points(link.centerBreakPoint3Ds(), indexs_list, ratios)
-
-            new_links_info = [
-                {
-                    'center': link_center_points[index],
-                    'name': f"{link.name()}/{index}",
-                    'lanes': collections.defaultdict(lambda: {
-                        'center': [],
-                        'left': [],
-                        'right': [],
-                        'type': '',
-                        'attr': {},
-                    }),
-                    'old_link_id': link.id(),
-                } for index in range(len(indexs_list) + 1)
-            ]
-
-            for lane in link.lanes():
-                center_points = self.calc_points(lane.centerBreakPoint3Ds(), indexs_list, ratios)
-                left_points = self.calc_points(lane.leftBreakPoint3Ds(), indexs_list, ratios)
-                right_points = self.calc_points(lane.rightBreakPoint3Ds(), indexs_list, ratios)
-                for index in range(len(indexs_list) + 1):  # 被分割后的 link 数量,比分割点数大 1
-                    new_links_info[index]['lanes'][lane.number()] = {
-                        'center': center_points[index],
-                        'left': left_points[index],
-                        'right': right_points[index],
-                        'type': lane.actionType(),
-                        'attr': {},
-                    }
             all_new_link_info += new_links_info
 
             # 记录 link 基本信息后移除
@@ -262,10 +274,7 @@ class AdjustNetwork:
         # TODO 根据信息做路网调整, 在调整过程中，未遍历到的 link_group 不会被调整，即不会丢失对象
         # 分步做，先统计原始的连接段信息，方便后续迭代
         old_connectors = []
-        for link_group in link_groups:
-            if len(link_group) == 1:
-                continue
-
+        for link_group in filter(lambda x: len(x) > 1, link_groups):
             # 记录原始信息，方便后续重新创建路段及连接段
             first_link = link_group[0]
             final_link = link_group[-1]
@@ -276,11 +285,8 @@ class AdjustNetwork:
             old_connectors += self.calc_downstream_connection(final_link.id())
 
         all_new_link_info = []
-        # 进行路段合并
-        for link_group in link_groups:
-            if len(link_group) == 1:
-                continue
-
+        # 记录路段合并信息
+        for link_group in filter(lambda x: len(x) > 1, link_groups):
             new_link_info = {
                 'center': [],
                 'name': '',
@@ -327,25 +333,8 @@ class AdjustNetwork:
         road = self.roads[link_id]
         connectors = []
         for last_link_id in road.last_links:
-            connector = self.netiface.findConnectorByLinkIds(last_link_id, link_id)
-            connectors.append(
-                {
-                    'from_link_id': last_link_id,
-                    'to_link_id': link_id,
-                    'connector': [
-                        (i.fromLane().number(), i.toLane().number())
-                        for i in connector.laneConnectors()
-                    ],
-                    'lanesWithPoints3': [
-                        {
-                            "center": i.centerBreakPoint3Ds(),
-                            "left": i.leftBreakPoint3Ds(),
-                            "right": i.rightBreakPoint3Ds(),
-                        }
-                        for i in connector.laneConnectors()
-                    ],
-                }
-            )
+            connector_info = self.get_connector_info(last_link_id, link_id)
+            connectors.append(connector_info)
         return connectors
 
     # 计算路段的下游连接关系
@@ -353,26 +342,28 @@ class AdjustNetwork:
         road = self.roads[link_id]
         connectors = []
         for next_link_id in road.next_links:
-            connector = self.netiface.findConnectorByLinkIds(link_id, next_link_id)
-            connectors.append(
-                {
-                    'from_link_id': link_id,
-                    'to_link_id': next_link_id,
-                    'connector': [
-                        (i.fromLane().number(), i.toLane().number())
-                        for i in connector.laneConnectors()
-                    ],
-                    'lanesWithPoints3': [
-                        {
-                            "center": i.centerBreakPoint3Ds(),
-                            "left": i.leftBreakPoint3Ds(),
-                            "right": i.rightBreakPoint3Ds(),
-                        }
-                        for i in connector.laneConnectors()
-                    ],
-                }
-            )
+            connector_info = self.get_connector_info(link_id, next_link_id)
+            connectors.append(connector_info)
         return connectors
+
+    def get_connector_info(self, from_link_id, to_link_id):
+        connector = self.netiface.findConnectorByLinkIds(from_link_id, to_link_id)
+        return {
+            'from_link_id': from_link_id,
+            'to_link_id': to_link_id,
+            'connector': [
+                (i.fromLane().number(), i.toLane().number())
+                for i in connector.laneConnectors()
+            ],
+            'lanesWithPoints3': [
+                {
+                    "center": i.centerBreakPoint3Ds(),
+                    "left": i.leftBreakPoint3Ds(),
+                    "right": i.rightBreakPoint3Ds(),
+                }
+                for i in connector.laneConnectors()
+            ],
+        }
 
     def get_chain_by_next(self, road, link_group: list):
         if len(road.next_links) != 1:
@@ -433,12 +424,12 @@ class AdjustNetwork:
             if connector_name in exist_connector:
                 continue
             self.netiface.createConnector3DWithPoints(new_from_link_id,
-                                                 new_to_link_id,
-                                                 [i[0] + 1 for i in connector['connector']],
-                                                 [i[1] + 1 for i in connector['connector']],
-                                                 connector['lanesWithPoints3'],
-                                                 f"{new_from_link_id}-{new_to_link_id}"
-                                                 )
+                                                      new_to_link_id,
+                                                      [i[0] + 1 for i in connector['connector']],
+                                                      [i[1] + 1 for i in connector['connector']],
+                                                      connector['lanesWithPoints3'],
+                                                      f"{new_from_link_id}-{new_to_link_id}"
+                                                      )
             # 采用默认连接，防止出现连接段不平滑问题
             # netiface.createConnector(new_from_link_id, new_to_link_id, [i[0] + 1 for i in connector['connector']], [i[1] + 1 for i in connector['connector']], f"{new_from_link_id}-{new_to_link_id}")
             exist_connector.append(connector_name)
