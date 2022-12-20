@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from PySide2.QtWidgets import QDockWidget
+from pytessng.Tessng import TessPlugin
 from TESS_API_EXAMPLE import *
+from MyNet import MyNet
 
 
 # 用户插件，继承自TessPlugin
@@ -30,7 +32,8 @@ class MyPlugin(TessPlugin):
     # 过载父类方法，在 TESS NG工厂类创建TESS NG对象时调用
     def init(self):
         self.initGui()
-        self.mNetInf = PyCustomerNet()
+        # self.mNetInf = PyCustomerNet()
+        self.mNetInf = MyNet()
 
     # 过载父类方法，返回插件路网子接口，此方法由TESS NG调用
     def customerNet(self):

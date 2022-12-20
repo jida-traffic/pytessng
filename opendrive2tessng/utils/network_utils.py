@@ -262,6 +262,7 @@ class Network:
 
         Returns:
             opendrive 路段ID 与 TessNg Link 对象映射关系
+
         """
         road_mapping = dict()
         # 先行创建所有的基本路段
@@ -319,6 +320,7 @@ class Network:
 
                         link_obj = netiface.createLink3DWithLanePointsAndAttrs(lCenterLinePoint, lanesWithPoints,
                                                                                lLaneType, lAttr, link_name)
+                        # link_obj = netiface.createLink3DWithLaneWidth(lCenterLinePoint, [m2p(i+1) for i in range(len(lAttr))], 'link_name')
 
                         # link_obj 可能为None, 为什么会发生这种情况
                         if not link_obj:

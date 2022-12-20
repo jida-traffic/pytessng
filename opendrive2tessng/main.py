@@ -1,7 +1,7 @@
 import os
 
 from lxml import etree
-from utils.network_utils import Network
+from opendrive2tessng.utils.network_utils import Network
 from opendrive2lanelet.opendriveparser.parser import parse_opendrive
 
 
