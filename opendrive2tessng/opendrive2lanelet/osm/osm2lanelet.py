@@ -41,10 +41,10 @@ class OSM2LConverter:
         self.lanelet_network = None
 
     def __call__(
-        self,
-        osm: OSM,
-        detect_adjacencies: bool = True,
-        left_driving_system: bool = False,
+            self,
+            osm: OSM,
+            detect_adjacencies: bool = True,
+            left_driving_system: bool = False,
     ) -> Scenario:
         """Convert OSM to Scenario.
 
@@ -85,10 +85,10 @@ class OSM2LConverter:
         return scenario
 
     def _way_rel_to_lanelet(
-        self,
-        way_rel: WayRelation,
-        detect_adjacencies: bool,
-        left_driving_system: bool = False,
+            self,
+            way_rel: WayRelation,
+            detect_adjacencies: bool,
+            left_driving_system: bool = False,
     ) -> ConversionLanelet:
         """Convert a WayRelation to a Lanelet, add additional adjacency information.
 
@@ -195,7 +195,7 @@ class OSM2LConverter:
         return lanelet
 
     def _check_for_split_and_join_adjacencies(
-        self, first_left_node, first_right_node, last_left_node, last_right_node
+            self, first_left_node, first_right_node, last_left_node, last_right_node
     ) -> Tuple[List, List]:
         """Check if there are adjacencies if there is a lanelet split or join.
 
@@ -268,7 +268,7 @@ class OSM2LConverter:
         return potential_adj_left, potential_adj_right
 
     def _check_for_predecessors(
-        self, first_left_node: str, first_right_node: str
+            self, first_left_node: str, first_right_node: str
     ) -> List:
 
         """Check whether the first left and right node are last nodes of another lanelet.
@@ -320,12 +320,12 @@ class OSM2LConverter:
         return []
 
     def _find_adjacencies_of_coinciding_ways(
-        self,
-        lanelet: ConversionLanelet,
-        first_left_node: str,
-        first_right_node: str,
-        last_left_node: str,
-        last_right_node: str,
+            self,
+            lanelet: ConversionLanelet,
+            first_left_node: str,
+            first_right_node: str,
+            last_left_node: str,
+            last_right_node: str,
     ):
         """Find adjacencies of a lanelet by checking if its vertices coincide with vertices of other lanelets.
 
@@ -353,7 +353,7 @@ class OSM2LConverter:
             for lanelet_id in potential_left_same_direction:
                 nb_lanelet = self.lanelet_network.find_lanelet_by_id(lanelet_id)
                 if nb_lanelet is not None and _two_vertices_coincide(
-                    lanelet.left_vertices, nb_lanelet.right_vertices
+                        lanelet.left_vertices, nb_lanelet.right_vertices
                 ):
                     self.lanelet_network.set_adjacent_left(
                         lanelet, nb_lanelet.lanelet_id, True
@@ -374,7 +374,7 @@ class OSM2LConverter:
             for lanelet_id in potential_right_same_direction:
                 nb_lanelet = self.lanelet_network.find_lanelet_by_id(lanelet_id)
                 if nb_lanelet is not None and _two_vertices_coincide(
-                    lanelet.right_vertices, nb_lanelet.left_vertices
+                        lanelet.right_vertices, nb_lanelet.left_vertices
                 ):
                     self.lanelet_network.set_adjacent_right(
                         lanelet, nb_lanelet.lanelet_id, True
@@ -396,7 +396,7 @@ class OSM2LConverter:
                 nb_lanelet = self.lanelet_network.find_lanelet_by_id(lanelet_id)
                 # compare right vertice of nb_lanelet with left vertice of lanelet
                 if nb_lanelet is not None and _two_vertices_coincide(
-                    lanelet.left_vertices, nb_lanelet.left_vertices[::-1]
+                        lanelet.left_vertices, nb_lanelet.left_vertices[::-1]
                 ):
                     self.lanelet_network.set_adjacent_left(
                         lanelet, nb_lanelet.lanelet_id, False
@@ -417,7 +417,7 @@ class OSM2LConverter:
             for lanelet_id in potential_right_other_direction:
                 nb_lanelet = self.lanelet_network.find_lanelet_by_id(lanelet_id)
                 if nb_lanelet is not None and _two_vertices_coincide(
-                    lanelet.right_vertices, nb_lanelet.right_vertices[::-1]
+                        lanelet.right_vertices, nb_lanelet.right_vertices[::-1]
                 ):
                     self.lanelet_network.set_adjacent_right(
                         lanelet, nb_lanelet.lanelet_id, True
@@ -425,7 +425,7 @@ class OSM2LConverter:
                     break
 
     def _check_right_and_left_neighbors(
-        self, way_rel: WayRelation, lanelet: ConversionLanelet
+            self, way_rel: WayRelation, lanelet: ConversionLanelet
     ):
         """check if lanelet has adjacent right and lefts.
 
@@ -494,7 +494,7 @@ class OSM2LConverter:
         return np.linalg.norm(vec1 - vec2)
 
     def _find_lanelet_ids_of_suitable_nodes(
-        self, nodes_dict: dict, node_id: str
+            self, nodes_dict: dict, node_id: str
     ) -> List:
         """Find values of a dict where the keys are node ids.
 
@@ -517,7 +517,7 @@ class OSM2LConverter:
 
 
 def _two_vertices_coincide(
-    vertices1: List[np.ndarray], vertices2: List[np.ndarray]
+        vertices1: List[np.ndarray], vertices2: List[np.ndarray]
 ) -> bool:
     """Check if two vertices coincide and describe the same trajectory.
 

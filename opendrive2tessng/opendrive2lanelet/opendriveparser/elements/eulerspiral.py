@@ -3,7 +3,6 @@
 import numpy as np
 from scipy import special
 
-
 __author__ = "Benjamin Orthen, Stefan Urban"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["Priority Program SPP 1835 Cooperative Interacting Automobiles"]
@@ -63,7 +62,7 @@ class EulerSpiral:
         elif self._gamma == 0 and kappa0 != 0:
             # Arc
             Cs = C0 + np.exp(1j * theta0) / kappa0 * (
-                np.sin(kappa0 * s) + 1j * (1 - np.cos(kappa0 * s))
+                    np.sin(kappa0 * s) + 1j * (1 - np.cos(kappa0 * s))
             )
 
         else:

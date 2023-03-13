@@ -143,14 +143,20 @@ def connect_childs(links: Tessng.ILink, connector_mapping: Dict) -> None:
         for actionType, lanes_info in actionTypeMapping.items():
             for lane_id in set(lanes_info['from'] | lanes_info['to']):
                 # 车道原始编号相等，取原始编号对应的车道，否则，取临近车道(lane_ids 是有序的，所以临近车道永远偏向左边区)
-                from_lane_id = min(lanes_info['from'], key=lambda x: abs(x - lane_id))
-                from_lane = from_link_info[from_lane_id]
+                # 因为进行过自优化(人为打断与合并)，可能会导致前后失去连接关系，需要注意
+                from_lane_id = min(lanes_info['from'], key=lambda x: abs(x - lane_id)) if lanes_info[
+                    'from'] else None
+                to_lane_id = min(lanes_info['to'], key=lambda x: abs(x - lane_id)) if lanes_info['to'] else None
 
-                to_lane_id = min(lanes_info['to'], key=lambda x: abs(x - lane_id))
-                to_lane = to_link_info[to_lane_id]
-                connect_lanes.add((from_lane.number() + 1, to_lane.number() + 1))
+                from_lane = from_link_info.get(from_lane_id)
+                to_lane = to_link_info.get(to_lane_id)
+                if from_lane and to_lane:
+                    connect_lanes.add((from_lane.number() + 1, to_lane.number() + 1))
 
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'] += [i[0] for i in connect_lanes]
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'] += [i[1] for i in connect_lanes]
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'] += [None for i in connect_lanes]
-        connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'] += []
+        if connect_lanes:
+            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lFromLaneNumber'] += [i[0] for i in
+                                                                                         connect_lanes]
+            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lToLaneNumber'] += [i[1] for i in connect_lanes]
+            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'] += [None for _ in
+                                                                                          connect_lanes]
+            connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'] += []

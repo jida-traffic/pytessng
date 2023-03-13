@@ -99,7 +99,7 @@ class Link:
 
         """
         if not isinstance(value, list) or not all(
-            isinstance(x, Neighbor) for x in value
+                isinstance(x, Neighbor) for x in value
         ):
             raise TypeError("Value must be list of instances of Neighbor.")
 
@@ -131,11 +131,11 @@ class Predecessor:
 
     def __str__(self):
         return (
-            str(self._elementType)
-            + " with id "
-            + str(self._elementId)
-            + " contact at "
-            + str(self._contactPoint)
+                str(self._elementType)
+                + " with id "
+                + str(self._elementId)
+                + " contact at "
+                + str(self._contactPoint)
         )
 
     @property

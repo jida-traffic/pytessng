@@ -3,7 +3,6 @@
 """Module to enhance Lanelet class so it can be used
 for conversion from the opendrive format."""
 
-
 from typing import Tuple
 
 import numpy as np
@@ -35,26 +34,26 @@ class ConversionLanelet(Lanelet):
     """
 
     def __init__(
-        self,
-        parametric_lane_group,
-        left_vertices: np.ndarray,
-        center_vertices: np.ndarray,
-        right_vertices: np.ndarray,
-        lanelet_id,
-        predecessor=None,
-        successor=None,
-        adjacent_left=None,
-        adjacent_left_same_direction=None,
-        adjacent_right=None,
-        adjacent_right_same_direction=None,
-        line_marking_left_vertices=None,
-        line_marking_right_vertices=None,
-        stop_line=None,
-        lanelet_type= None,
-        user_one_way=None,
-        user_bidirectional=None,
-        traffic_signs=None,
-        traffic_lights=None,
+            self,
+            parametric_lane_group,
+            left_vertices: np.ndarray,
+            center_vertices: np.ndarray,
+            right_vertices: np.ndarray,
+            lanelet_id,
+            predecessor=None,
+            successor=None,
+            adjacent_left=None,
+            adjacent_left_same_direction=None,
+            adjacent_right=None,
+            adjacent_right_same_direction=None,
+            line_marking_left_vertices=None,
+            line_marking_right_vertices=None,
+            stop_line=None,
+            lanelet_type=None,
+            user_one_way=None,
+            user_bidirectional=None,
+            traffic_signs=None,
+            traffic_lights=None,
     ):
         if lanelet_type is None:
             lanelet_type = {LaneletType.UNKNOWN}
@@ -193,7 +192,7 @@ class ConversionLanelet(Lanelet):
         self._adj_right_same_direction = same
 
     def concatenate(
-        self, lanelet_conc: "ConversionLanelet", extend_plane_group: bool = True
+            self, lanelet_conc: "ConversionLanelet", extend_plane_group: bool = True
     ) -> "ConversionLanelet":
         """Concatenate this lanelet with lanelet_conc and assign the
         new lanelet_id to the resulting lanelet.
@@ -279,7 +278,7 @@ class ConversionLanelet(Lanelet):
         return self.parametric_lane_group.has_zero_width_everywhere()
 
     def first_zero_width_change_position(
-        self, reverse: bool = False, reference_width: float = 0.0
+            self, reverse: bool = False, reference_width: float = 0.0
     ) -> float:
         """Get the earliest point of the lanelet where the width change is zero.
 
@@ -298,7 +297,7 @@ class ConversionLanelet(Lanelet):
         return self.parametric_lane_group.maximum_width()
 
     def optimal_join_split_values(
-        self, is_split: bool, split_and_join: bool, reference_width: float
+            self, is_split: bool, split_and_join: bool, reference_width: float
     ):
         """Calculate an optimal value, where the lanelet split or join starts
           or ends, respectively.
@@ -331,11 +330,11 @@ class ConversionLanelet(Lanelet):
         return merge_pos, merge_width
 
     def move_border(
-        self,
-        mirror_border: str,
-        mirror_interval: Tuple[float, float],
-        distance: Tuple[float, float],
-        adjacent_lanelet: "ConversionLanelet",
+            self,
+            mirror_border: str,
+            mirror_interval: Tuple[float, float],
+            distance: Tuple[float, float],
+            adjacent_lanelet: "ConversionLanelet",
     ):
         """Move vertices of one border by mirroring other border with
         a specified distance.

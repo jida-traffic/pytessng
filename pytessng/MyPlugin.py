@@ -39,6 +39,6 @@ class MyPlugin(TessPlugin):
     def customerNet(self):
         return self.mNetInf
 
-    #过载父类方法，返回插件仿真子接口，此方法由TESS NG调用
+    # 过载父类方法，返回插件仿真子接口，此方法由TESS NG调用
     def customerSimulator(self):
         return self.mSimuInf

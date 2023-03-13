@@ -3,12 +3,12 @@ import numpy as np
 
 from Tessng import m2p, p2m
 from PySide2.QtGui import QVector3D
-
 from tessng2opendrive.config import LANE_TYPE_MAPPING
 
 
 class BaseRoad:
     Road_id = 1
+
     def __init__(self):
         self.id = BaseRoad.Road_id
         BaseRoad.Road_id += 1
@@ -209,7 +209,7 @@ class Connector(BaseRoad):
         # TODO 线的高程存在问题，待胡工更新
         geometry_points = self.qtpoint2point(laneConnector.leftBreakPoint3Ds())
         self.geometrys, self.length = self.calc_geometry(geometry_points)
-        self.elevations = self.calc_elevation(geometry_points)   # 用车道中心线计算高程
+        self.elevations = self.calc_elevation(geometry_points)  # 用车道中心线计算高程
 
     # 添加车道, junction 仅一条右侧车道 + 中心车道
     def add_lane(self):
@@ -220,7 +220,8 @@ class Connector(BaseRoad):
         lane_id = -1
         direction = 'right'
         # widths = self.calc_deviation_curves(left_points, right_points, calc_singal=True)
-        widths = self.calc_deviation_curves(self.laneConnector.leftBreakPoint3Ds(), self.laneConnector.rightBreakPoint3Ds(), calc_singal=True)
+        widths = self.calc_deviation_curves(self.laneConnector.leftBreakPoint3Ds(),
+                                            self.laneConnector.rightBreakPoint3Ds(), calc_singal=True)
         self.lanes.append(
             {
                 'width': widths,
@@ -242,7 +243,8 @@ class Junction:
 # opendrive 中的所有曲线对象
 class Curve:
     def __init__(self, **kwargs):
-        parameters = ["road", "section", "lane", "s", "x", "y", "hdg", "a", "b", "c", "d", "offset", 'direction', 'level', 'length']
+        parameters = ["road", "section", "lane", "s", "x", "y", "hdg", "a", "b", "c", "d", "offset", 'direction',
+                      'level', 'length']
         for key in parameters:
             if key in kwargs:
                 self.__setattr__(key, kwargs[key])

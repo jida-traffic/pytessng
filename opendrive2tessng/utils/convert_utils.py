@@ -60,7 +60,8 @@ def calc_width(l1: List, l2: List):
     return width_list
 
 
-def convert_roads_info(opendrive: OpenDrive, step_length: int, filter_types: List[str]) -> Dict:  # step_length需要对第三方包进行修改
+def convert_roads_info(opendrive: OpenDrive, step_length: int,
+                       filter_types: List[str]) -> Dict:  # step_length需要对第三方包进行修改
     """
         对路段级别信息进行二次处理，获取有效信息，将其保存为字典
     Args:
@@ -115,7 +116,7 @@ def convert_roads_info(opendrive: OpenDrive, step_length: int, filter_types: Lis
                 'length': section_length,
                 'steps': steps,
                 'lengths': lengths,
-                "left_offsets": [road_length - offset for offset in  lengths],
+                "left_offsets": [road_length - offset for offset in lengths],
                 "right_offsets": lengths,
                 "elevations": [],
             }
@@ -167,7 +168,7 @@ def convert_lanes_info(opendrive: OpenDrive, scenario: Scenario, roads_info: Dic
             scenario_mapping["sections"][f"{road.id},{sectionidx}"] = section
             for lane in section.allLanes:
                 scenario_mapping["lanes"][f"{road.id},{sectionidx},{lane.id}"] = lane
-                if lane.id == 0: # 中心车道信息保存在road info中
+                if lane.id == 0:  # 中心车道信息保存在road info中
                     roads_info[road.id]['lane_sections'][sectionidx]['center_lane'] = {
                         "lane_id": lane.id,
                         "road_marks": lane.road_marks,
@@ -190,7 +191,7 @@ def convert_lanes_info(opendrive: OpenDrive, scenario: Scenario, roads_info: Dic
         # 计算车道宽度
         center_vertices, left_vertices, right_vertices = lane.center_vertices.tolist(), lane.left_vertices.tolist(), lane.right_vertices.tolist()
         widths = calc_width(left_vertices, right_vertices)
-        
+
         # 添加高程
         if lane_id > 0:
             elevtions = [i["position"][2] for i in roads_info[road_id]["road_points"][section_id]['left_points']]
@@ -241,13 +242,13 @@ def convert_section_info(sections: LaneSection, filter_types: List[str]):
 
     """
     sections_mapping = collections.defaultdict(lambda: {
-            'right': [],
-            'center': [],
-            'left': [],
-            'all': [],
-            'infos': {}
-        }
-    )
+        'right': [],
+        'center': [],
+        'left': [],
+        'all': [],
+        'infos': {}
+    }
+                                               )
     for section in sections:
         section_id = sections.index(section)
         for lane in section.allLanes:
@@ -260,7 +261,8 @@ def convert_section_info(sections: LaneSection, filter_types: List[str]):
             else:
                 direction = 'right'
             sections_mapping[section_id][direction].append(lane.id)
-        sections_mapping[section_id]['all'] = sections_mapping[section_id]['right'] + sections_mapping[section_id]['left'] + sections_mapping[section_id]['center']
+        sections_mapping[section_id]['all'] = sections_mapping[section_id]['right'] + sections_mapping[section_id][
+            'left'] + sections_mapping[section_id]['center']
     return sections_mapping
 
 

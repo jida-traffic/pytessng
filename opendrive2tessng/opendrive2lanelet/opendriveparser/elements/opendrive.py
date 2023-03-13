@@ -83,17 +83,17 @@ class Header:
     """ """
 
     def __init__(
-        self,
-        rev_major=None,
-        rev_minor=None,
-        name: str = None,
-        version=None,
-        date=None,
-        north=None,
-        south=None,
-        east=None,
-        west=None,
-        vendor=None,
+            self,
+            rev_major=None,
+            rev_minor=None,
+            name: str = None,
+            version=None,
+            date=None,
+            north=None,
+            south=None,
+            east=None,
+            west=None,
+            vendor=None,
     ):
         self.revMajor = rev_major
         self.revMinor = rev_minor

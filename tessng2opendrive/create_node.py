@@ -29,7 +29,6 @@ class Doc:
         userData = self.doc.createElement('userData')
         header.appendChild(userData)
 
-
     def add_junction(self, junctions):
         root = self.doc.getElementsByTagName('OpenDRIVE')[0]
         for junction in junctions:
@@ -37,7 +36,6 @@ class Doc:
             root.appendChild(junction_node)
             junction_node.setAttribute('id', str(junction.tess_id))
             self.junction_node_mapping[junction.tess_id] = junction_node
-
 
     def add_road(self, roads):
         root = self.doc.getElementsByTagName('OpenDRIVE')[0]
@@ -121,7 +119,7 @@ class Doc:
             for lane in road.lanes:
                 lane_node = self.doc.createElement('lane')
                 eval(f'{lane["direction"]}_node').appendChild(lane_node)
-                all_lane_node.append(lane_node)    # 从右向左排序
+                all_lane_node.append(lane_node)  # 从右向左排序
 
                 # 添加车道信息到映射表
                 if road.type == 'link' and lane['lane']:

@@ -62,7 +62,6 @@ class Network:
 
             # A lane section is the smallest part that can be converted at once
             for lane_section in road.lanes.lane_sections:
-
                 parametric_lane_groups = OpenDriveConverter.lane_section_to_parametric_lanes(
                     lane_section, reference_border
                 )
@@ -108,7 +107,7 @@ class Network:
         return lanelet_network
 
     def export_commonroad_scenario(
-        self, dt: float = 0.1, benchmark_id=None, filter_types=None, roads_info=None, context=None
+            self, dt: float = 0.1, benchmark_id=None, filter_types=None, roads_info=None, context=None
     ):
         """Export a full CommonRoad scenario
 
@@ -173,8 +172,8 @@ class LinkIndex:
                     # Last lane section! > Next road in first lane section
                     # Try to get next road
                     elif (
-                        road.link.successor is not None
-                        and road.link.successor.elementType != "junction"
+                            road.link.successor is not None
+                            and road.link.successor.elementType != "junction"
                     ):
 
                         next_road = opendrive.getRoad(road.link.successor.element_id)
@@ -206,8 +205,8 @@ class LinkIndex:
                     # First lane section! > Previous road
                     # Try to get previous road
                     elif (
-                        road.link.predecessor is not None
-                        and road.link.predecessor.elementType != "junction"
+                            road.link.predecessor is not None
+                            and road.link.predecessor.elementType != "junction"
                     ):
 
                         prevRoad = opendrive.getRoad(road.link.predecessor.element_id)

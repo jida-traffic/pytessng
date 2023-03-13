@@ -40,11 +40,11 @@ class ParametricLaneBorderGroup:
     # NOTE: not checking types with getter/setter because duck typing
     # should be possible
     def __init__(
-        self,
-        inner_border=None,
-        inner_border_offset=None,
-        outer_border=None,
-        outer_border_offset=None,
+            self,
+            inner_border=None,
+            inner_border_offset=None,
+            outer_border=None,
+            outer_border_offset=None,
     ):
         self.inner_border = inner_border
         self.inner_border_offset = inner_border_offset
@@ -52,7 +52,7 @@ class ParametricLaneBorderGroup:
         self.outer_border_offset = outer_border_offset
 
     def calc_border_position(
-        self, border: str, s_pos: float, width_offset: float, is_last_pos: bool = False
+            self, border: str, s_pos: float, width_offset: float, is_last_pos: bool = False
     ) -> Tuple[Tuple[float, float], float]:
         """Calc vertices point of inner or outer Border.
 
@@ -105,11 +105,11 @@ class ParametricLane:
     """
 
     def __init__(
-        self,
-        id_: str,
-        type_: str,
-        border_group: ParametricLaneBorderGroup,
-        length: float = None,
+            self,
+            id_: str,
+            type_: str,
+            border_group: ParametricLaneBorderGroup,
+            length: float = None,
     ):
         self.border_group = border_group
         self.id_ = id_
@@ -118,7 +118,7 @@ class ParametricLane:
         self.reverse = False
 
     def calc_border(
-        self, border: str, s_pos: float, width_offset: float = 0.0
+            self, border: str, s_pos: float, width_offset: float = 0.0
     ) -> Tuple[Tuple[float, float], float]:
         """Calc vertices point of inner or outer Border.
 
@@ -172,11 +172,11 @@ class ParametricLane:
         return self.border_group.get_width_coefficients() == [0, 0, 0, 0]
 
     def to_lanelet_with_mirroring(
-        self,
-        mirror_border: str,
-        distance: list,
-        mirror_interval: list,
-        precision: float = 0.5,
+            self,
+            mirror_border: str,
+            distance: list,
+            mirror_interval: list,
+            precision: float = 0.5,
     ) -> ConversionLanelet:
         """Convert a ParametricLane to Lanelet.
 
@@ -211,7 +211,7 @@ class ParametricLane:
 
             # if not mirroring lane or outside of range
             if (
-                pos < mirror_interval[0] or pos > mirror_interval[1]
+                    pos < mirror_interval[0] or pos > mirror_interval[1]
             ) and not np.isclose(pos, mirror_interval[1]):
                 left_vertices.append(inner_pos)
                 right_vertices.append(outer_pos)
@@ -231,8 +231,8 @@ class ParametricLane:
                     # change width s.t. it does not mirror inner border but instead
                     # outer border
                     distance_from_other_border = (
-                        math.copysign(1, distance_from_other_border)
-                        * last_width_difference
+                            math.copysign(1, distance_from_other_border)
+                            * last_width_difference
                     )
                     if modified_width < original_width:
                         right_vertices.append(
@@ -252,8 +252,8 @@ class ParametricLane:
                     modified_width = np.linalg.norm(new_inner_pos - outer_pos)
 
                     distance_from_other_border = (
-                        math.copysign(1, distance_from_other_border)
-                        * last_width_difference
+                            math.copysign(1, distance_from_other_border)
+                            * last_width_difference
                     )
                     if modified_width < original_width:
                         left_vertices.append(
@@ -313,7 +313,7 @@ class ParametricLane:
 
         width_coefficients = self.border_group.get_width_coefficients()
         if width_coefficients[0] > 0.0 and all(
-            coeff == 0.0 for coeff in width_coefficients
+                coeff == 0.0 for coeff in width_coefficients
         ):
             # this is not correct as it should be an interval
             return [0, self.length]
@@ -348,7 +348,7 @@ class ParametricLane:
             & (roots >= 0)
             # & (is_local_maximum)
             & (roots <= self.length)
-        ]
+            ]
 
         # append start and end of ParametricLane because maximum could be there, too
         restricted_roots = np.append(restricted_roots, [0, self.length])

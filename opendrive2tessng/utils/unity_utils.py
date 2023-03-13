@@ -6,13 +6,13 @@ from opendrive2tessng.utils.config import UNITY_LANE_MAPPING
 
 
 def deviation_point(coo1, coo2, width, right=False, is_last=False):
-    signl = 1 if right else -1  #记录向左向右左右偏移
+    signl = 1 if right else -1  # 记录向左向右左右偏移
     x1, y1, z1, x2, y2, z2 = coo1 + coo2  # 如果是最后一个点，取第二个 点做偏移
     x_base, y_base, z_base = coo1 if not is_last else coo2
-    if not ((x2-x1) or (y2-y1)):  # 分母为0
+    if not ((x2 - x1) or (y2 - y1)):  # 分母为0
         return [x_base, y_base, z_base]
-    X = x_base + signl * width * (y2 - y1) / sqrt(square(x2-x1) + square((y2-y1)))
-    Y = y_base + signl * width * (x1 - x2) / sqrt(square(x2-x1) + square((y2-y1)))
+    X = x_base + signl * width * (y2 - y1) / sqrt(square(x2 - x1) + square((y2 - y1)))
+    Y = y_base + signl * width * (x1 - x2) / sqrt(square(x2 - x1) + square((y2 - y1)))
     return [X, Y, z_base]
 
 
@@ -22,6 +22,7 @@ filter_ids = []
 border_line_width = 0.2
 center_line_width = 0.3
 empty_line_lenfth, real_line_length = 3, 4  # 虚实线长度
+
 
 def convert_unity(roads_info, lanes_info, step):
     new_lanes_info = {}
@@ -221,7 +222,8 @@ def convert_unity(roads_info, lanes_info, step):
     unity_count = {}
     for key, value in unity_info.items():
         # value = []
-        unity_info[key] = [{'pointsArray': info, 'drawOrder': [i for i in range(len(info))], 'count': int(len(info))} for info in chunk(value, 60000)]
+        unity_info[key] = [{'pointsArray': info, 'drawOrder': [i for i in range(len(info))], 'count': int(len(info))}
+                           for info in chunk(value, 60000)]
         unity_count[key] = len(unity_info[key])
 
     return unity_info

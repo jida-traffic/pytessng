@@ -12,7 +12,6 @@ from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.geometry import
     Poly3,
 )
 
-
 __author__ = "Benjamin Orthen, Stefan Urban"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["Priority Program SPP 1835 Cooperative Interacting Automobiles"]
@@ -90,7 +89,7 @@ class PlanView:
         self._add_geometry(Arc(start_pos, heading, length, curvature), True)
 
     def addParamPoly3(
-        self, start_pos, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange
+            self, start_pos, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange
     ):
         """
 
@@ -188,18 +187,18 @@ class PlanView:
         # so idx can be used anyway in the other np.interp function calls
         idx = np.abs(self._precalculation[:, 0] - s_pos).argmin()
         if s_pos - self._precalculation[idx, 0] < 0 or idx + 1 == len(
-            self._precalculation
+                self._precalculation
         ):
             idx -= 1
         result_pos_x = np.interp(
             s_pos,
-            self._precalculation[idx : idx + 2, 0],
-            self._precalculation[idx : idx + 2, 1],
+            self._precalculation[idx: idx + 2, 0],
+            self._precalculation[idx: idx + 2, 1],
         )
         result_pos_y = np.interp(
             s_pos,
-            self._precalculation[idx : idx + 2, 0],
-            self._precalculation[idx : idx + 2, 2],
+            self._precalculation[idx: idx + 2, 0],
+            self._precalculation[idx: idx + 2, 2],
         )
         result_tang = self.interpolate_angle(idx, s_pos)
         result_pos = np.array((result_pos_x, result_pos_y))
@@ -249,7 +248,7 @@ class PlanView:
             else:
                 raise Exception(
                     f"Tried to calculate a position outside of the borders of the reference path at s={s_pos}"
-                    f", but path has only length of l={ self._geo_lengths[-1]}"
+                    f", but path has only length of l={self._geo_lengths[-1]}"
                 )
 
                 # bug fix why geo_idx is index which geometry to use?

@@ -94,7 +94,7 @@ class L2OSMConverter:
         self.osm.add_way_relation(WayRelation(self.id_count, left_way_id, right_way_id))
 
     def _create_nodes(
-        self, lanelet: Lanelet, left_way_id: str, right_way_id: str
+            self, lanelet: Lanelet, left_way_id: str, right_way_id: str
     ) -> Tuple[List[str], List[str]]:
         """Create new nodes for the ways of the lanelet.
         Add them to OSM and return a list of the node ids.
@@ -157,7 +157,7 @@ class L2OSMConverter:
         return left_nodes, right_nodes
 
     def _get_first_and_last_nodes_from_way(
-        self, way_id: str, same_dir: bool
+            self, way_id: str, same_dir: bool
     ) -> Tuple[str, str]:
         """Get the first and the last node of a way.
 
@@ -241,7 +241,7 @@ class L2OSMConverter:
         return None
 
     def _get_shared_first_nodes_from_other_lanelets(
-        self, lanelet: Lanelet
+            self, lanelet: Lanelet
     ) -> Tuple[str, str]:
         """Get already created nodes from other lanelets which could also
            be used by this lanelet as first nodes.
@@ -269,7 +269,7 @@ class L2OSMConverter:
         return None, None
 
     def _get_shared_last_nodes_from_other_lanelets(
-        self, lanelet: Lanelet
+            self, lanelet: Lanelet
     ) -> Tuple[str, str]:
         """Get already created nodes from other lanelets which could also
            be used by this lanelet as last nodes.
@@ -299,7 +299,7 @@ class L2OSMConverter:
 
 
 def _vertices_are_equal(
-    vertices1: List[np.ndarray], vertices2: List[np.ndarray]
+        vertices1: List[np.ndarray], vertices2: List[np.ndarray]
 ) -> bool:
     """Checks if two list of vertices are equal up to a tolerance.
 

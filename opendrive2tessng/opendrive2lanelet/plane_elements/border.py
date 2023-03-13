@@ -47,7 +47,7 @@ class Border:
                 if (
                     (n <= s_pos and (not is_last_pos or s_pos == 0))
                     or (n < s_pos and is_last_pos)
-                )
+            )
             ),
             len(self.width_coefficient_offsets),
         )
@@ -103,11 +103,11 @@ class Border:
 
         # Calculate width at s_pos
         distance = (
-            np.polynomial.polynomial.polyval(
-                s_pos - self.width_coefficient_offsets[width_idx],
-                self.width_coefficients[width_idx],
-            )
-            + width_offset
+                np.polynomial.polynomial.polyval(
+                    s_pos - self.width_coefficient_offsets[width_idx],
+                    self.width_coefficients[width_idx],
+                )
+                + width_offset
         )
 
         # New point is in orthogonal direction

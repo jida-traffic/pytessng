@@ -7,7 +7,7 @@ from Tessng import *
 from PySide2.QtGui import *
 from typing import List, Dict
 from opendrive2tessng import send_signal
-from opendrive2tessng.utils.config import LANE_TYPE_MAPPING, MIN_CONNECTOR_LENGTH
+from opendrive2tessng.utils.config import LANE_TYPE_MAPPING, MIN_CONNECTOR_LENGTH, is_center
 from opendrive2tessng.utils.convert_utils import convert_opendrive, convert_roads_info, convert_lanes_info
 from opendrive2tessng.utils.functions import get_inter, get_section_childs, connect_childs
 from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.opendrive import OpenDrive
@@ -86,7 +86,6 @@ class Road:
             for section in self.sections:
                 if section.id == section_id:
                     return section
-            # return self.sections[section_id]
 
     def section_append(self, section: Section):
         self.sections.append(section)
@@ -106,7 +105,6 @@ class Network:
         self.network_info = None
         self.xy_move = (0, 0)
         self.size = (300, 600)
-        # self.signals_info = {}
         self.step = None
 
     def extract_network_info(self, step: int = None, filters: List[str] = None, context: Dict = None):
@@ -385,7 +383,6 @@ class Network:
                         if not (is_true and to_road_id in road_mapping.keys()):
                             continue
 
-                        # TODO 只针对性的创建路段间的连接, 如果将交叉口也当成正常路段，此代码需要注释
                         if to_road_id not in link_road_ids:
                             continue
 
@@ -447,7 +444,7 @@ class Network:
             for predecessor_id in predecessor_ids:
                 if predecessor_id in lanes_info.keys() and roads_info.get(lanes_info[predecessor_id]['road_id'],
                                                                           {}).get(
-                        'junction_id') is not None:  # 前置路线为交叉口，继续向前遍历
+                    'junction_id') is not None:  # 前置路线为交叉口，继续向前遍历
                     get_predecessor_ids_by_link(new_predecessor_ids, lanes_info[predecessor_id]['predecessor_ids'])
                 else:
                     new_predecessor_ids.append(predecessor_id)
@@ -484,7 +481,6 @@ class Network:
             road_info = roads_info[road_id]
             for section_id, section_info in road_info.get('sections', {}).items():
                 # 获取路口的所有连接关系
-                # for lane_id, lane_info in section_info["lanes"].items():
                 for lane_id in section_info['tess_lane_ids']:
                     lane_info = section_info["lanes"][lane_id]
 
@@ -619,19 +615,14 @@ class Network:
                 netiface.createConnector(from_link_id, to_link_id, lFromLaneNumber, lToLaneNumber,
                                          f"{from_link_id}-{to_link_id}")
 
-    def get_coo_list(self, vertices: List[float]) -> List[QVector3D]:
+    def get_coo_list(self, vertices: List) -> List[QVector3D]:
         """
             将米制的三维点位坐标转换为QT的点位，如果要进行平移/旋转也是在这里进行
         """
-        move_mapping = {}  # {'1': (-39690.80539515679, -9159.353235480216), '2': (-29975.378298974767, -7102.215052510457), '3': (-19020.263782370093, -6409.682241662137), '4': (-9343.11554606197, -2964.4420603571043), '5': (0.0, 2.1243463654840866e-09), '6': (8584.383098399541, 2872.7646580777614), '7': (18638.777999554917, 5395.968485447117), '8': (27743.90926290797, 5937.608183936889), '9': (33437.73145991787, 7746.601821882594)}
-
-        # {'1': (-39690.80539515679, -9159.353235480216), '2': (-29975.378298974767, -7102.215052510457), '3': (-19020.263782370093, -6409.682241662137), '4': (-9343.11554606197, -2964.4420603571043), '5': (0.0, 2.1243463654840866e-09), '6': (8584.383098399541, 2872.7646580777614), '7': (18638.777999554917, 5395.968485447117), '8': (27743.90926290797, 5937.608183936889), '9': (33437.73145991787, 7746.601821882594)}
-        if self.file_name and self.file_name.split("_")[-1] in move_mapping.keys():
-            x_move, y_move = move_mapping[self.file_name.split("_")[-1]]
-        else:
+        if is_center:
             x_move, y_move = self.xy_move
-        # x_move, y_move = self.xy_move
-        x_move, y_move = 0, 0
+        else:
+            x_move, y_move = 0, 0
         temp_list = []
         for vertice in vertices:
             temp_list.append(QVector3D(m2p((vertice[0] + x_move)), m2p(-(vertice[1] + y_move)), m2p(vertice[2])))

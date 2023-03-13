@@ -35,8 +35,8 @@ class Ui_TESS_API_EXAMPLEClass(object):
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        # self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10.0 m", "0.1 m"))
-        self.xodrStep.addItems(("5 m", "50 m", "100 m", "1000 m"))
+        self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10 m", "0.1 m"))
+        # self.xodrStep.addItems(("5 m", "50 m", "100 m", "1000 m"))
 
         # 文件导入进度条
         self.pb = QProgressBar(self.centralWidget)
@@ -153,8 +153,6 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.retranslateUi(TESS_API_EXAMPLEClass)
 
         QMetaObject.connectSlotsByName(TESS_API_EXAMPLEClass)
-
-    # setupUi
 
     def retranslateUi(self, TESS_API_EXAMPLEClass):
         TESS_API_EXAMPLEClass.setWindowTitle(

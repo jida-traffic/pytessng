@@ -52,8 +52,6 @@ class TESS_API_EXAMPLE(QMainWindow):
         file_path, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, xodrSuffix)
         if not file_path:
             return
-        # file_path = r'C:/Users/yang/Desktop/OD测试/split - 副本.csv'
-        # file_path = r'C:/Users/yang/Desktop/OD测试/split.csv'
         adjust_obj = AdjustNetwork(netiface)
         message = adjust_obj.split_link(file_path)
         if message and isinstance(message, str):

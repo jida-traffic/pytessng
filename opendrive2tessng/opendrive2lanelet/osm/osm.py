@@ -8,7 +8,6 @@ __maintainer__ = "Sebastian Maierhofer"
 __email__ = "commonroad-i06@in.tum.de"
 __status__ = "Released"
 
-
 from lxml import etree
 
 DEFAULT_PROJ_STRING = "+proj=utm +zone=32 +ellps=WGS84"

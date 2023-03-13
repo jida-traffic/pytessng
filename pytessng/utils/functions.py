@@ -65,6 +65,13 @@ class AdjustNetwork:
 
             roads[next_link.id()] = next_road
             roads[last_link.id()] = last_road
+
+        # 记录无连接段的路段
+        for link in self.netiface.links():
+            if link.id() not in roads:
+                road = Road()
+                road.link = link
+                roads[link.id()] = road
         return roads
 
     # 计算路段上所有的路段点，车道点
@@ -79,6 +86,8 @@ class AdjustNetwork:
         first_point = None
         # 先把初识点全部分配下去
         for _, indexs in enumerate(indexs_list):
+            if indexs:
+                last_index = indexs[-1]  # 更新计算点
             new_points = [points[index] for index in indexs]
             # 添加首尾点
             if first_point is not None:
@@ -90,8 +99,8 @@ class AdjustNetwork:
             first_point = final_point
 
             new_points_list.append(new_points)
-            if indexs:
-                last_index = indexs[-1]  # 更新计算点
+            # if indexs:
+            #     last_index = indexs[-1]  # 更新计算点
 
         # 添加最后一个路段，第一个点为上一路段计算的终点，第二个点为上一路段所在点序列的下一个点，最后一个点为路段终点
         new_points_list.append([first_point] + points[last_index + 1:])
@@ -108,6 +117,7 @@ class AdjustNetwork:
         for point_index, point in enumerate(center_points):
             x, y, z = point
             distance = np.sqrt((x - last_x) ** 2 + (y - last_y) ** 2)
+            last_x, last_y, last_z = x, y, x
 
             new_sum_length = sum_length + distance
             for split_index, split_length in enumerate(lengths):
@@ -177,11 +187,11 @@ class AdjustNetwork:
         split_links_info = collections.defaultdict(lambda: {'lengths': [], 'index': [], 'ratio': []})
         for row in reader:
             try:
-                row = [int(i) for index, i in enumerate(row)]
+                row = [float(i) for index, i in enumerate(row)]
             except:
                 return f"输入数据错误:{row}"
 
-            link_id = row[0]
+            link_id = int(row[0])
             points_length = sorted(row[1:])
             link = self.netiface.findLink(link_id)
             if not link:
@@ -215,9 +225,7 @@ class AdjustNetwork:
             self.calc_split_parameter(link, split_link_info)
             # 获取切割详情，含点序列等基本信息
             new_links_info = self.calc_split_links_info(link, split_link_info)
-
             all_new_link_info += new_links_info
-
             # 记录 link 基本信息后移除
             old_link_id = link.id()
             old_new_link_mapping[old_link_id].remove(old_link_id)  # 删除路段前，移除相关的映射关系

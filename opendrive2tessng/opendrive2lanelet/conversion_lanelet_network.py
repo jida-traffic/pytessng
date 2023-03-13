@@ -301,12 +301,12 @@ class ConversionLaneletNetwork(LaneletNetwork):
 
             lanelet_split, lanelet_join = False, False
             if not lanelet.predecessor and np.allclose(
-                lanelet.left_vertices[0], lanelet.right_vertices[0]
+                    lanelet.left_vertices[0], lanelet.right_vertices[0]
             ):
                 lanelet_split = True
 
             if not lanelet.successor and np.allclose(
-                lanelet.left_vertices[-1], lanelet.right_vertices[-1]
+                    lanelet.left_vertices[-1], lanelet.right_vertices[-1]
             ):
                 lanelet_join = True
 
@@ -321,7 +321,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
             js_target.add_adjacent_predecessor_or_successor()
 
     def predecessor_is_neighbor_of_neighbors_predecessor(
-        self, lanelet: "ConversionLanelet"
+            self, lanelet: "ConversionLanelet"
     ) -> bool:
         """Checks if neighbors of predecessor are the successor of the adjacent neighbors
         of the lanelet.
@@ -340,7 +340,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
         return self.successor_is_neighbor_of_neighbors_successor(predecessor)
 
     def add_successors_to_lanelet(
-        self, lanelet: ConversionLanelet, successor_ids: List[str]
+            self, lanelet: ConversionLanelet, successor_ids: List[str]
     ):
         """Add a successor to a lanelet, but add the lanelet also to the predecessor
         of the succesor.
@@ -355,7 +355,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
             successor.predecessor.append(lanelet.lanelet_id)
 
     def add_predecessors_to_lanelet(
-        self, lanelet: ConversionLanelet, predecessor_ids: List[str]
+            self, lanelet: ConversionLanelet, predecessor_ids: List[str]
     ):
         """Add a successor to a lanelet, but add the lanelet also to the predecessor
         of the succesor.
@@ -370,7 +370,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
             predecessor.successor.append(lanelet.lanelet_id)
 
     def set_adjacent_left(
-        self, lanelet: ConversionLanelet, adj_left_id: str, same_direction: bool = True
+            self, lanelet: ConversionLanelet, adj_left_id: str, same_direction: bool = True
     ):
         """Set the adj_left of a lanelet to a new value.
 
@@ -398,7 +398,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
         return True
 
     def set_adjacent_right(
-        self, lanelet: ConversionLanelet, adj_right_id: str, same_direction: bool = True
+            self, lanelet: ConversionLanelet, adj_right_id: str, same_direction: bool = True
     ):
         """Set the adj_right of a lanelet to a new value.
 
@@ -426,7 +426,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
         return True
 
     def check_concatenation_potential(
-        self, lanelet: ConversionLanelet, adjacent_direction: str
+            self, lanelet: ConversionLanelet, adjacent_direction: str
     ) -> list:
         """Check if lanelet could be concatenated with its successor.
 
@@ -479,7 +479,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
         return mergeable_lanelets
 
     def successor_is_neighbor_of_neighbors_successor(
-        self, lanelet: ConversionLanelet
+            self, lanelet: ConversionLanelet
     ) -> bool:
         """Checks if neighbors of successor are the successor of the adjacent neighbors
         of the lanelet.
@@ -499,7 +499,7 @@ class ConversionLaneletNetwork(LaneletNetwork):
         )
 
     def has_unique_pred_succ_relation(
-        self, direction: int, lanelet: ConversionLanelet
+            self, direction: int, lanelet: ConversionLanelet
     ) -> bool:
         """Checks if lanelet has only one successor/predecessor and the
         successor/predecessor has only one predecessor/successor, s.t.
@@ -615,11 +615,11 @@ class _JoinSplitTarget:
     """
 
     def __init__(
-        self,
-        lanelet_network: ConversionLaneletNetwork,
-        main_lanelet: ConversionLanelet,
-        split: bool,
-        join: bool,
+            self,
+            lanelet_network: ConversionLaneletNetwork,
+            main_lanelet: ConversionLanelet,
+            split: bool,
+            join: bool,
     ):
         self.main_lanelet = main_lanelet
         self.lanelet_network = lanelet_network
@@ -820,21 +820,21 @@ class _JoinSplitTarget:
             if algo_has_finished or self.use_only_single_lanelet():
                 break
             if (
-                self.split
-                and self.lanelet_network.successor_is_neighbor_of_neighbors_successor(
-                    lanelet
-                )
-                # and lanelet.successor[0] not in global_adjacent_lanelets
+                    self.split
+                    and self.lanelet_network.successor_is_neighbor_of_neighbors_successor(
+                lanelet
+            )
+                    # and lanelet.successor[0] not in global_adjacent_lanelets
             ):
                 lanelet = self._find_lanelet_by_id(lanelet.successor[0])
                 adjacent_lanelet = self._find_lanelet_by_id(
                     adjacent_lanelet.successor[0]
                 )
             elif self.join and (
-                self.lanelet_network.predecessor_is_neighbor_of_neighbors_predecessor(
-                    lanelet
-                )
-                # and lanelet.predecessor[0] not in global_adjacent_lanelets
+                    self.lanelet_network.predecessor_is_neighbor_of_neighbors_predecessor(
+                        lanelet
+                    )
+                    # and lanelet.predecessor[0] not in global_adjacent_lanelets
             ):
                 lanelet = self._find_lanelet_by_id(lanelet.predecessor[0])
                 adjacent_lanelet = self._find_lanelet_by_id(
@@ -845,7 +845,7 @@ class _JoinSplitTarget:
                 break
 
     def _add_join_split_pair(
-        self, lanelet: ConversionLanelet, adjacent_lanelet: ConversionLanelet
+            self, lanelet: ConversionLanelet, adjacent_lanelet: ConversionLanelet
     ) -> bool:
         """Add a pair of lanelet and adjacent lanelet to self._js_pairs.
 
@@ -946,7 +946,7 @@ class _JoinSplitTarget:
         return None
 
     def _check_next_adjacent_lanelet(
-        self, potential_adjacent_lanelets: Queue
+            self, potential_adjacent_lanelets: Queue
     ) -> ConversionLanelet:
         """Check next lanelet if it can act as adjacent lanelet to the main lanelet.
 
@@ -995,7 +995,7 @@ class _JoinSplitPair:
         self.change_interval = change_interval
 
     def move_border(
-        self, width: Tuple[float, float], linking_side: str
+            self, width: Tuple[float, float], linking_side: str
     ) -> ConversionLanelet:
         """Move border of self.lanelet.
 

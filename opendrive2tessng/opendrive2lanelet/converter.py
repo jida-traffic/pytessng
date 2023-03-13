@@ -11,7 +11,6 @@ from opendrive2tessng.opendrive2lanelet.plane_elements.plane_group import Parame
 from opendrive2tessng.opendrive2lanelet.plane_elements.border import Border
 from opendrive2tessng.opendrive2lanelet.utils import encode_road_section_lane_width_id
 
-
 __author__ = "Benjamin Orthen"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["Priority Program SPP 1835 Cooperative Interacting Automobiles"]
@@ -72,7 +71,7 @@ class OpenDriveConverter:
 
     @staticmethod
     def lane_section_to_parametric_lanes(
-        lane_section, reference_border
+            lane_section, reference_border
     ) -> List[ParametricLaneGroup]:
         """Convert a whole lane section into a list of ParametricLane objects.
 

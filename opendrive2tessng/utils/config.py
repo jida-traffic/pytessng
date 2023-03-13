@@ -9,7 +9,7 @@ LANE_TYPE_MAPPING = {
     'connectingRamp': '机动车道',
 
     'shoulder': '机动车道',
-    # 'border': '',
+    'border': '',
     'stop': '应急车道',
     # 'none': '',
     # 'redtricted': '',
@@ -28,12 +28,15 @@ POINT_REQUIRE = max(2, point_require)
 # 当 opendrive 连接段的首尾连接长度低于此值时，抛弃原有的点序列，使用自动连接
 MIN_CONNECTOR_LENGTH = None
 
+# 是否将路网移至画面中心
+is_center = False
+
 # 需要被处理的车道类型及处理参数
 WIDTH_LIMIT = {
-    # '机动车道': {
-    #     'split': 2,  # 作为正常的最窄距离
-    #     'join': 1.5,  # 被忽略时的最宽距离
-    # },
+    '机动车道': {
+        'split': 2,  # 作为正常的最窄距离
+        'join': 1.5,  # 被忽略时的最宽距离
+    },
     # '非机动车道': {
     #     'split': 2,
     #     'join': 0.5,

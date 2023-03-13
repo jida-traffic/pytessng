@@ -32,7 +32,7 @@ class LateralProfile:
     @superelevations.setter
     def superelevations(self, value):
         if not isinstance(value, list) or not all(
-            isinstance(x, Superelevation) for x in value
+                isinstance(x, Superelevation) for x in value
         ):
             raise TypeError("Value must be a list of Superelevation.")
 
@@ -46,7 +46,7 @@ class LateralProfile:
     @crossfalls.setter
     def crossfalls(self, value):
         if not isinstance(value, list) or not all(
-            isinstance(x, Crossfall) for x in value
+                isinstance(x, Crossfall) for x in value
         ):
             raise TypeError("Value must be a list of Crossfall.")
 
@@ -81,7 +81,7 @@ class Crossfall(RoadRecord):
     """
 
     def __init__(
-        self, *polynomial_coefficients: float, start_pos: float = None, side: str = None
+            self, *polynomial_coefficients: float, start_pos: float = None, side: str = None
     ):
         super().__init__(*polynomial_coefficients, start_pos=start_pos)
         self.side = side
@@ -131,10 +131,10 @@ class Shape(RoadRecord):
     """
 
     def __init__(
-        self,
-        *polynomial_coefficients: float,
-        start_pos: float = None,
-        start_pos_t: float = None,
+            self,
+            *polynomial_coefficients: float,
+            start_pos: float = None,
+            start_pos_t: float = None,
     ):
         super().__init__(*polynomial_coefficients, start_pos=start_pos)
         self.start_pos_t = start_pos_t

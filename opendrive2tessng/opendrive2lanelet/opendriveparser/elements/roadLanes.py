@@ -319,10 +319,10 @@ class LaneWidth(RoadRecord):
 """
 
     def __init__(
-        self,
-        *polynomial_coefficients: float,
-        idx: int = None,
-        start_offset: float = None
+            self,
+            *polynomial_coefficients: float,
+            idx: int = None,
+            start_offset: float = None
     ):
         self.idx = idx
         self.length = 0

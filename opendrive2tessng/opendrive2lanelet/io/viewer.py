@@ -42,7 +42,6 @@ __maintainer__ = "Sebastian Maierhofer"
 __email__ = "commonroad-i06@in.tum.de"
 __status__ = "Released"
 
-
 matplotlib.use("Qt5Agg")
 
 
@@ -258,8 +257,8 @@ class MainWindow(QWidget):
                     label = "{} selected".format(lanelet.lanelet_id)
 
                 elif (
-                    lanelet.lanelet_id in selected_lanelet.predecessor
-                    and lanelet.lanelet_id in selected_lanelet.successor
+                        lanelet.lanelet_id in selected_lanelet.predecessor
+                        and lanelet.lanelet_id in selected_lanelet.successor
                 ):
                     color = "purple"
                     alpha = 0.5
@@ -324,7 +323,7 @@ class MainWindow(QWidget):
             # TODO efficiency
 
             for x, y in np.vstack(
-                [lanelet.left_vertices, lanelet.right_vertices[::-1]]
+                    [lanelet.left_vertices, lanelet.right_vertices[::-1]]
             ):
                 verts.append([x, y])
                 codes.append(Path.LINETO)
@@ -386,10 +385,10 @@ class MainWindow(QWidget):
         self.dynamic.get_axes().legend(handles, labels)
 
         if (
-            xlim1 != float("Inf")
-            and xlim2 != float("Inf")
-            and ylim1 != float("Inf")
-            and ylim2 != float("Inf")
+                xlim1 != float("Inf")
+                and xlim2 != float("Inf")
+                and ylim1 != float("Inf")
+                and ylim2 != float("Inf")
         ):
             self.dynamic.get_axes().set_xlim([xlim1, xlim2])
             self.dynamic.get_axes().set_ylim([ylim1, ylim2])

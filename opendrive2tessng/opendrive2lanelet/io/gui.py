@@ -16,7 +16,6 @@ from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistin
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Tag
 
-
 from opendrive2tessng.opendrive2lanelet.opendriveparser.parser import parse_opendrive
 from opendrive2tessng.opendrive2lanelet.network import Network
 from opendrive2tessng.opendrive2lanelet.io.viewer import MainWindow as ViewerWidget

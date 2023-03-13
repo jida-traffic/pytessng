@@ -212,7 +212,7 @@ class ParamPoly3(Geometry):
     """
 
     def __init__(
-        self, start_position, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange
+            self, start_position, heading, length, aU, bU, cU, dU, aV, bV, cV, dV, pRange
     ):
         super().__init__(start_position=start_position, heading=heading, length=length)
 
