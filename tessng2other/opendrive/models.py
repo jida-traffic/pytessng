@@ -1,9 +1,8 @@
 import math
 import numpy as np
 
-from Tessng import m2p, p2m
-from PySide2.QtGui import QVector3D
-from tessng2opendrive.config import LANE_TYPE_MAPPING
+from tessng2other.opendrive.config import LANE_TYPE_MAPPING
+from tessng2other.opendrive.functions import qtpoint2point, clockwise_angle
 
 
 class BaseRoad:
@@ -43,36 +42,6 @@ class BaseRoad:
         return geometrys, s
 
     @staticmethod
-    def qtpoint2point(qtpoints):
-        points = []
-        for qtpoint in qtpoints:
-            points.append(
-                [p2m(qtpoint.x()), - p2m(qtpoint.y()), p2m(qtpoint.z())] if isinstance(qtpoint, QVector3D) else qtpoint
-            )
-        return points
-
-    @staticmethod
-    def get_coo_list(vertices):
-        list1 = []
-        x_move, y_move = 0, 0
-        for index in range(0, len(vertices), 1):
-            vertice = vertices[index]
-            list1.append(QVector3D(m2p((vertice[0] - x_move)), m2p(-(vertice[1] - y_move)), m2p(vertice[2])))
-        if len(list1) < 2:
-            raise 3
-        return list1
-
-    @staticmethod
-    # 计算向量2相对向量1的旋转角度（-pi~pi）
-    def clockwise_angle(v1, v2):
-        x1, y1 = v1.x, v1.y
-        x2, y2 = v2.x, v2.y
-        dot = x1 * x2 + y1 * y2
-        det = x1 * y2 - y1 * x2
-        theta = np.arctan2(det, dot)
-        return theta
-
-    @staticmethod
     def calc_elevation(points):
         """
         计算 高程曲线列表
@@ -95,8 +64,8 @@ class BaseRoad:
 
     @staticmethod
     def calc_deviation_curves(qt_left_points, qt_right_points, calc_singal=False):
-        left_points = BaseRoad.qtpoint2point(qt_left_points)
-        right_points = BaseRoad.qtpoint2point(qt_right_points)
+        left_points = qtpoint2point(qt_left_points)
+        right_points = qtpoint2point(qt_right_points)
 
         deviation_curves = []
         # 车道宽度计算，以左侧车道为基础，向右偏移（向 tessng 看齐）,假设所有车道宽度线性变化
@@ -111,8 +80,8 @@ class BaseRoad:
             end_deviation_vector = Vector(start_point=left_end_point, end_point=right_end_point)
 
             # 计算向量夹角 角度在 -pi ~ 0 以内
-            start_signal = np.sign(BaseRoad.clockwise_angle(geometry_vector, start_deviation_vector))
-            end_signal = np.sign(BaseRoad.clockwise_angle(geometry_vector, end_deviation_vector))
+            start_signal = np.sign(clockwise_angle(geometry_vector, start_deviation_vector))
+            end_signal = np.sign(clockwise_angle(geometry_vector, end_deviation_vector))
 
             # 起终点宽度及行进距离, TODO 此处宽度算有问题，不应该用相应成对点的距离作为宽度，有可能发生两点不垂直于中心线，这样算出的宽度偏大
             start_deviation_distance = (np.linalg.norm(
@@ -147,7 +116,7 @@ class Road(BaseRoad):
         # self.lane_offsets = self.calc_deviation_curves(link.leftBreakPoint3Ds(), link.centerBreakPoint3Ds(), calc_singal=False)
 
         # 直接用link左侧边界作为参考线，就不需要偏移量了
-        geometry_points = self.qtpoint2point(self.link.leftBreakPoint3Ds())
+        geometry_points = qtpoint2point(self.link.leftBreakPoint3Ds())
         self.lane_offsets = []
 
         self.geometrys, self.length = self.calc_geometry(geometry_points)
@@ -207,7 +176,7 @@ class Connector(BaseRoad):
         # 默认车道方向即参考线方向
         self.add_lane()
         # TODO 线的高程存在问题，待胡工更新
-        geometry_points = self.qtpoint2point(laneConnector.leftBreakPoint3Ds())
+        geometry_points = qtpoint2point(laneConnector.leftBreakPoint3Ds())
         self.geometrys, self.length = self.calc_geometry(geometry_points)
         self.elevations = self.calc_elevation(geometry_points)  # 用车道中心线计算高程
 

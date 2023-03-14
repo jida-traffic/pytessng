@@ -212,12 +212,12 @@ class Network:
         roads_info = copy.deepcopy(self.network_info["roads_info"])
         lanes_info = copy.deepcopy(self.network_info["lanes_info"])
 
-        # unity 信息提取
-        from opendrive2tessng.utils.unity_utils import convert_unity
-        unity_info = convert_unity(roads_info, lanes_info, self.step)
-        unity_info = {'unity': unity_info, 'count': {}}
-        for k, v in unity_info['unity'].items():
-            unity_info['count'][k] = len(v)
+        # 通过 opendrive 生成unity 信息
+        # from opendrive2tessng.utils.unity_utils import convert_unity
+        # unity_info = convert_unity(roads_info, lanes_info, self.step)
+        # unity_info = {'unity': unity_info, 'count': {}}
+        # for k, v in unity_info['unity'].items():
+        #     unity_info['count'][k] = len(v)
 
         # 对于宽度过窄的车道所在路段进行打断
         for road_id, road_info in roads_info.items():

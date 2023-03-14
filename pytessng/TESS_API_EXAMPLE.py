@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import collections
+import json
 import os
-import csv
-import numpy as np
 
 from pathlib import Path
 from DockWidget import *
@@ -10,10 +8,9 @@ from PySide2.QtWidgets import *
 from Tessng import *
 from threading import Thread
 from xml.dom import minidom
-from tessng2opendrive.create_node import Doc
-from tessng2opendrive.tess2xodr import Junction, Connector, Road
+from tessng2other.opendrive.node import Doc
+from tessng2other.opendrive.models import Junction, Connector, Road
 from opendrive2tessng.main import main as TessNetwork
-from pytessng.utils.functions import qtpoint2point, point2qtpoint
 from pytessng.utils.functions import AdjustNetwork
 
 
@@ -36,6 +33,7 @@ class TESS_API_EXAMPLE(QMainWindow):
     def createConnect(self):
         self.ui.btnOpenNet.clicked.connect(self.openNet)
         self.ui.btnCreateXodr.clicked.connect(self.createXodr)
+        self.ui.btnCreateUnity.clicked.connect(self.createUnity)
         self.ui.btnShowXodr.clicked.connect(self.showXodr)
         self.ui.btnJoinLink.clicked.connect(self.joinLink)
         self.ui.btnSplitLink.clicked.connect(self.splitLink)
@@ -86,7 +84,7 @@ class TESS_API_EXAMPLE(QMainWindow):
 
         # 因为1.4 不支持多个前继/后续路段/车道，所以全部使用 junction 建立连接关系
         # 每个连接段视为一个 road，多个 road 组合成一个 junction
-        connecors = []
+        connectors = []
         junctions = []
         for ConnectorArea in netiface.allConnectorArea():
             junction = Junction(ConnectorArea)
@@ -94,7 +92,7 @@ class TESS_API_EXAMPLE(QMainWindow):
             for connector in ConnectorArea.allConnector():
                 # 为所有的 车道连接创建独立的road，关联至 junction
                 for laneConnector in connector.laneConnectors():
-                    connecors.append(Connector(laneConnector, junction))
+                    connectors.append(Connector(laneConnector, junction))
 
         roads = []
         for link in netiface.links():
@@ -104,13 +102,35 @@ class TESS_API_EXAMPLE(QMainWindow):
         doc = Doc()
         doc.init_doc()
         doc.add_junction(junctions)
-        doc.add_road(roads + connecors)
+        doc.add_road(roads + connectors)
 
         uglyxml = doc.doc.toxml()
         xml = minidom.parseString(uglyxml)
         xml_pretty_str = xml.toprettyxml()
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(xml_pretty_str)
+
+    def createUnity(self, info):
+        iface = tngIFace()
+        netiface = iface.netInterface()
+
+        if not netiface.linkCount():
+            return
+
+        xodrSuffix = "OpenDrive Files (*.json)"
+        dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
+        file_path, filtr = QFileDialog.getSaveFileName(None, "文件保存", dbDir, xodrSuffix)
+        if not file_path:
+            return
+
+        # unity 信息提取
+        from tessng2other.unity.unity_utils import convert_unity
+        # TODO 车道类型相同，虚线，否则实线
+        unity_info = convert_unity(netiface)
+        unity_info = {'unity': unity_info, 'count': {}}
+        for k, v in unity_info['unity'].items():
+            unity_info['count'][k] = len(v)
+        json.dump(unity_info, open(file_path, 'w'))
 
     def openNet(self):
         xodrSuffix = "OpenDrive Files (*.xodr)"

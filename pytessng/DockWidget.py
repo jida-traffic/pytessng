@@ -46,9 +46,13 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnOpenNet = QPushButton(self.centralWidget)
         self.btnOpenNet.setObjectName(u"btnOpenNet")
 
-        # TODO opendrive 创建
+        # 导出 opendrive 文件
         self.btnCreateXodr = QPushButton(self.centralWidget)
         self.btnCreateXodr.setObjectName(u"btnCreateXodr")
+
+        # 导出 unity 文件
+        self.btnCreateUnity = QPushButton(self.centralWidget)
+        self.btnCreateUnity.setObjectName(u"btnCreateUnity")
 
         # 路网文件自调整
         self.btnJoinLink = QPushButton(self.centralWidget)
@@ -64,6 +68,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_0.addWidget(self.pb)
         self.verticalLayout_0.addWidget(self.btnOpenNet)
         self.verticalLayout_0.addWidget(self.btnCreateXodr)
+        self.verticalLayout_0.addWidget(self.btnCreateUnity)
         self.verticalLayout_0.addWidget(self.btnJoinLink)
         self.verticalLayout_0.addWidget(self.btnSplitLink)
 
@@ -159,6 +164,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
             QCoreApplication.translate("TESS_API_EXAMPLEClass", u"TESS_API_EXAMPLE", None))
         self.btnOpenNet.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u9009\u62e9\u6587\u4ef6", None))
         self.btnCreateXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"导出opendrive文件", None))
+        self.btnCreateUnity.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"导出unity文件", None))
         self.btnJoinLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段合并", None))
         self.btnSplitLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段断开", None))
         # self.btnStartSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u542f\u52a8\u4eff\u771f", None))

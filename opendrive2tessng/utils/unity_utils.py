@@ -193,21 +193,14 @@ def convert_unity(roads_info, lanes_info, step):
             if type == "broken" and index % 10 in [0, 1, 2, 3]:  # 断线 3:2 虚线长度由步长和比例共同控制
                 continue
 
-            # # 移动到中心点
-            # x_move, y_move = sum(xy_limit[:2]) / 2, sum(xy_limit[2:]) / 2 if xy_limit else (0, 0)
-            # left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index + 1], right_vertices[index], \
-            #                                    right_vertices[index + 1]
-            # coo_0 = [[left_0[0] - x_move, 0, left_0[1] - y_move], [left_1[0] - x_move, 0, left_1[1] - y_move],
-            #          [right_0[0] - x_move, 0, right_0[1] - y_move]]
-            # coo_1 = [[left_1[0] - x_move, 0, left_1[1] - y_move], [right_1[0] - x_move, 0, right_1[1] - y_move],
-            #          [right_0[0] - x_move, 0, right_0[1] - y_move]]
-
+            left_0, left_1, right_0, right_1 = left_vertices[index], left_vertices[index + 1], right_vertices[index], \
+                                               right_vertices[index + 1]
             def xyz2xzy(array):
                 return [array[0], array[2], array[1]]
 
             coo_0 = [xyz2xzy(left_0), xyz2xzy(left_1), xyz2xzy(right_0)]
             coo_1 = [xyz2xzy(left_1), xyz2xzy(right_1), xyz2xzy(right_0)]
-            unity_info[lane_unity_mapping[lane_type]] += coo_0 + coo_1
+            # unity_info[lane_unity_mapping[lane_type]] += coo_0 + coo_1
 
             if color == "yellow":
                 unity_info["YellowLine"] += coo_0 + coo_1
@@ -219,11 +212,8 @@ def convert_unity(roads_info, lanes_info, step):
             map(lambda x: lst[x * size:x * size + size],
                 list(range(0, ceil(len(lst) / size)))))
 
-    unity_count = {}
+    # unity 模型限制，每个独立模型三角形个数不得超过 256*256
     for key, value in unity_info.items():
-        # value = []
         unity_info[key] = [{'pointsArray': info, 'drawOrder': [i for i in range(len(info))], 'count': int(len(info))}
                            for info in chunk(value, 60000)]
-        unity_count[key] = len(unity_info[key])
-
     return unity_info

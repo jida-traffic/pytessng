@@ -262,6 +262,7 @@ class AdjustNetwork:
                 # 已经进行过查找的 link 不需要再次遍历
                 continue
 
+            # 获取 link 相应的 上下游link 并组成有序列表
             link_group = [road.link]
             self.get_chain_by_next(road, link_group)
             self.get_chain_by_last(road, link_group)
