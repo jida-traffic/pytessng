@@ -2,23 +2,22 @@
 # tess 中车道类型定义 机动车道/机非共享/非机动车道/公交专用道
 LANE_TYPE_MAPPING = {
     'driving': '机动车道',
-    'onRamp': '机动车道',
-    'offRamp': '机动车道',
-    'entry': '机动车道',
-    'exit': '机动车道',
-    'connectingRamp': '机动车道',
-
-    'shoulder': '机动车道',
-    'border': '',
+    'biking': '非机动车道',
+    'sidewalk': '非机动车道',  # 行人道实际无意义
     'stop': '应急车道',
+
+    # 'onRamp': '机动车道',
+    # 'offRamp': '机动车道',
+    # 'entry': '机动车道',
+    # 'exit': '机动车道',
+    # 'connectingRamp': '机动车道',
+    # 'shoulder': '应急车道',
+    # 'border': '',
     # 'none': '',
     # 'redtricted': '',
-    # 'parking': '',
+    # 'parking': '停车带',
     # 'median': '',
     # 'curb': '',
-
-    'biking': '非机动车道',
-    'sidewalk': '非机动车道',
 }
 
 # 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2

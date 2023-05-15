@@ -32,10 +32,15 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.groupBox_1.setObjectName(u"groupBox_1")
         self.verticalLayout_0 = QVBoxLayout(self.groupBox_1)
 
+        # 其他选项
+        self.groupBox_4 = QGroupBox(self.centralWidget)
+        self.groupBox_4.setObjectName(u"groupBox_out")
+        self.verticalLayout_4 = QVBoxLayout(self.groupBox_4)
+
         xodr_label1 = QLabel()
         xodr_label1.setText("路段最小分段长度(请在文件导入前选择)")
         self.xodrStep = QComboBox(self.centralWidget)
-        self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10 m", "0.1 m"))
+        self.xodrStep.addItems(("1.0 m", "0.5 m", "5.0 m", "10 m", "20 m"))
         # self.xodrStep.addItems(("5 m", "50 m", "100 m", "1000 m"))
 
         # 文件导入进度条
@@ -59,6 +64,9 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnJoinLink.setObjectName(u"btnJoinLink")
 
         # 路段断开
+        # 允许用户输入路段ID以及点位坐标，如若为空，拉起文件选择框
+        self.textSplitLink = QLineEdit(self.centralWidget)
+        # self.textSplitLink.setObjectName(u"textSplitLink")
         self.btnSplitLink = QPushButton(self.centralWidget)
         self.btnSplitLink.setObjectName(u"btnSplitLink")
 
@@ -67,10 +75,12 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_0.addWidget(self.xodrStep)
         self.verticalLayout_0.addWidget(self.pb)
         self.verticalLayout_0.addWidget(self.btnOpenNet)
-        self.verticalLayout_0.addWidget(self.btnCreateXodr)
-        self.verticalLayout_0.addWidget(self.btnCreateUnity)
-        self.verticalLayout_0.addWidget(self.btnJoinLink)
-        self.verticalLayout_0.addWidget(self.btnSplitLink)
+        self.verticalLayout_4.addWidget(self.btnCreateXodr)
+        self.verticalLayout_4.addWidget(self.btnCreateUnity)
+        self.verticalLayout_4.addWidget(self.btnJoinLink)
+        self.verticalLayout_4.addWidget(self.textSplitLink)
+        self.verticalLayout_4.addWidget(self.btnSplitLink)
+        self.groupBox_4.setVisible(True)
 
         # 信息窗
         self.groupBox_3 = QGroupBox(self.centralWidget)
@@ -133,6 +143,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout.addWidget(self.groupBox_1)
         self.verticalLayout.addWidget(self.groupBox_2)
         self.verticalLayout.addWidget(self.groupBox_3)
+        self.verticalLayout.addWidget(self.groupBox_4)
 
         self.groupBox_3.setVisible(True)  # 信息窗
         self.pb.setVisible(False)  # 信息窗
@@ -171,6 +182,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         # self.btnPauseSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u6682\u505c\u4eff\u771f", None))
         # self.btnStopSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u505c\u6b62\u4eff\u771f", None))
         self.groupBox_1.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"opendrive文件导入", None))
+        self.groupBox_4.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"其他功能", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u4fe1\u606f\u7a97", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u521b\u5efaTESS NG", None))
         self.btnShowXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"开始创建TESS NG路网", None))

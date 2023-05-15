@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import csv
 import json
 import os
 
@@ -42,6 +43,30 @@ class TESS_API_EXAMPLE(QMainWindow):
         iface = tngIFace()
         netiface = iface.netInterface()
 
+        if self.ui.textSplitLink.text():
+            link_id, point_x, point_y = self.ui.textSplitLink.text().split(",")
+            link_id, point_x, point_y = int(link_id), float(point_x), float(point_y)
+            locations = netiface.locateOnCrid(QPointF(m2p(point_x), -m2p(point_y)), 9)
+
+            distance = None
+            for location in locations:
+                # 因为C++和python调用问题，必须先把lane实例化赋值给
+                if location.pLaneObject.isLane():
+                    lane = location.pLaneObject.castToLane()
+                    print(lane.link().id())
+                    if lane.link().id() == link_id:
+                        distance = location.distToStart
+                        break
+            if distance:
+                adjust_obj = AdjustNetwork(netiface)
+                message = adjust_obj.split_link([[link_id, distance]])
+                if message and isinstance(message, str):
+                    QMessageBox.warning(None, "提示信息", message)
+            return
+
+        iface = tngIFace()
+        netiface = iface.netInterface()
+
         if not netiface.linkCount():
             return
 
@@ -51,7 +76,10 @@ class TESS_API_EXAMPLE(QMainWindow):
         if not file_path:
             return
         adjust_obj = AdjustNetwork(netiface)
-        message = adjust_obj.split_link(file_path)
+
+        reader = csv.reader(open(file_path, 'r', encoding='utf-8'))
+        next(reader)
+        message = adjust_obj.split_link(reader)
         if message and isinstance(message, str):
             QMessageBox.warning(None, "提示信息", message)
         return

@@ -1,7 +1,6 @@
-from math import sqrt
 from PySide2.QtGui import QVector3D
 from pytessng.Tessng import p2m
-from math import ceil
+from math import ceil, sqrt
 from numpy import sqrt, square
 
 

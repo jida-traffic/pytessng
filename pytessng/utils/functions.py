@@ -29,7 +29,7 @@ class Road:
         self.link = None
         self.last_links = []
         self.next_links = []
-        self.connectors = []
+        self.connectors = []  # 暂时没用到
 
 
 class AdjustNetwork:
@@ -37,12 +37,23 @@ class AdjustNetwork:
         self.netiface = netiface
         self.roads = self.calc_connector()
 
+        self.connector_area_mapping = self.calc_connector_area()
+
         # 在调整的过程中，旧的link在不断删除，同时新的link被创建，所以需要建立映射关系表
         # connector也有可能在消失，所以不再被记录，通过上下游link获取connector
         self.old_new_link_mapping = {}
         # 初始化映射表,link在调整前后可能存在一对多/多对一关系，所以用 dict&list 记录
         for link in netiface.links():
             self.old_new_link_mapping[link.id()] = [link.id()]
+
+    # 记录全域的连接段面域
+    def calc_connector_area(self):
+        connector_area_mapping = collections.defaultdict(list)
+        for ConnectorArea in self.netiface.allConnectorArea():
+            for connector in ConnectorArea.allConnector():
+                connector_area_mapping[ConnectorArea.id()].append(connector.id())
+        return connector_area_mapping
+
 
     # 记录全局的连接关系
     def calc_connector(self):
@@ -154,7 +165,8 @@ class AdjustNetwork:
         new_links_info = [
             {
                 'center': link_center_points[index],
-                'name': f"{link.name()}/{index}",
+                # 'name': f"{link.name()}/{index}",
+                'name': f"{link.name()}",  # 保留原路段名
                 'lanes': collections.defaultdict(lambda: {
                     'center': [],
                     'left': [],
@@ -180,10 +192,7 @@ class AdjustNetwork:
                 }
         return new_links_info
 
-    def split_link(self, file_path):
-        reader = csv.reader(open(file_path, 'r', encoding='utf-8'))
-        next(reader)
-
+    def split_link(self, reader):
         split_links_info = collections.defaultdict(lambda: {'lengths': [], 'index': [], 'ratio': []})
         for row in reader:
             try:
@@ -378,7 +387,15 @@ class AdjustNetwork:
         if len(road.next_links) != 1:
             # 有且仅有一个下游，才可以继续延伸
             return
+
         next_link_id = road.next_links[0]
+        # 新增判断，即使路段只有一个下游，连接段所属面域中存在多个连接段，仍然不允许合并
+        connector = self.netiface.findConnectorByLinkIds(road.link.id(), next_link_id)
+        for value in self.connector_area_mapping.values():
+            if connector.id() in value and len(value) > 1:
+                print(value)
+                return
+
         next_link = self.netiface.findLink(next_link_id)
         next_road = self.roads[next_link.id()]
         # 判断下游 link 是否有且仅有 1 个上游，且车道数/车道类型与当前link一致，若一致，加入链路并继续向下游寻找
@@ -394,6 +411,12 @@ class AdjustNetwork:
             # 有且仅有一个上游，才可以继续延伸
             return
         last_link_id = road.last_links[0]
+        # 新增判断，即使路段只有一个下游，连接段所属面域中存在多个连接段，仍然不允许合并
+        connector = self.netiface.findConnectorByLinkIds(last_link_id, road.link.id())
+        for value in self.connector_area_mapping.values():
+            if connector.id() in value and len(value) > 1:
+                return
+
         last_link = self.netiface.findLink(last_link_id)
         last_road = self.roads[last_link.id()]
         # 判断上游 link 是否有且仅有 1 个下游，且车道数与当前link一致，若一致，加入链路并继续向上游寻找

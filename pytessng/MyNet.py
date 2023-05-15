@@ -12,6 +12,13 @@ class MyNet(PyCustomerNet):
         pass
 
     def ref_curvatureMinDist(self, itemType: int, itemId: int, ref_minDist: Tessng.objreal):
-        # if itemType == NetItemType.LaneConnectorType:
         ref_minDist.value = 0.1
         return True
+
+    def afterLoadNet(self):
+        # 代表TESS NG的接口
+        iface = tessngIFace()
+        # 代表TESS NG的路网子接口
+        netiface = iface.netInterface()
+        # 初始网格化
+        netiface.buildNetGrid(30)
