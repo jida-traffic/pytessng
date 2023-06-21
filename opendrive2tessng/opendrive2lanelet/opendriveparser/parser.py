@@ -574,6 +574,8 @@ def parse_opendrive_junction(opendrive, junction):
         newConnection.id = connection.get("id")
         newConnection.incomingRoad = connection.get("incomingRoad")
         newConnection.connectingRoad = connection.get("connectingRoad")
+        # if connection.get("contactPoint") not in ["start", "end"]:
+        #     continue
         newConnection.contactPoint = connection.get("contactPoint")
 
         for laneLink in connection.findall("laneLink"):

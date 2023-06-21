@@ -3,7 +3,7 @@
 LANE_TYPE_MAPPING = {
     'driving': '机动车道',
     'biking': '非机动车道',
-    'sidewalk': '非机动车道',  # 行人道实际无意义
+    'sidewalk': '人行道',  # 行人道实际无意义
     'stop': '应急车道',
 
     # 'onRamp': '机动车道',

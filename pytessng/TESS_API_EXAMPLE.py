@@ -38,6 +38,18 @@ class TESS_API_EXAMPLE(QMainWindow):
         self.ui.btnShowXodr.clicked.connect(self.showXodr)
         self.ui.btnJoinLink.clicked.connect(self.joinLink)
         self.ui.btnSplitLink.clicked.connect(self.splitLink)
+        self.ui.btnCreateLink.clicked.connect(self.createLink)
+
+    def createLink(self, info):
+        iface = tngIFace()
+        netiface = iface.netInterface()
+
+        if self.ui.textCreateLink.text():
+            [float(i) for i in self.ui.textCreateLink.text().split(",")]
+            point_1_x, point_1_y, point_2_x, point_2_y, move, *lane_widths = [float(i) for i in self.ui.textCreateLink.text().split(",")]
+            center_points = line2surface([(point_1_x, point_1_y, 0), (point_2_x, point_2_y, 0)], move)
+            center_points = [QVector3D(m2p(point[0]), - m2p(point[1]), m2p(point[2])) for point in center_points]
+            netiface.createLink3DWithLaneWidth(center_points, lane_widths)
 
     def splitLink(self, info):
         iface = tngIFace()

@@ -5,7 +5,7 @@ import sys
 
 from pathlib import Path
 from PySide2.QtWidgets import *
-from MyPlugin import MyPlugin
+from pytessng.MyPlugin import MyPlugin
 from Tessng import *
 
 

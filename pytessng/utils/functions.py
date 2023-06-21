@@ -1,9 +1,12 @@
 import collections
 import csv
+from math import sqrt
+
 import numpy as np
 
 from PySide2.QtGui import *
 from Tessng import *
+from numpy import square
 
 
 def qtpoint2point(qtpoints):
@@ -22,6 +25,33 @@ def point2qtpoint(points):
             QVector3D(p2m(point[0]), - p2m(point[1]), p2m(point[2])) if not isinstance(point, QVector3D) else point
         )
     return qtpoints
+
+def line2surface(base_points, move_parameter):
+    """
+        根据基础点序列，向右偏移一定距离)
+    """
+    points = []
+    point_count = len(base_points)
+    for index in range(point_count):
+        if index + 1 == point_count:
+            is_last = True
+            num = index - 1
+        else:
+            is_last = False
+            num = index
+
+        point = deviation_point(base_points[num], base_points[num + 1], move_parameter, is_last=is_last)
+        points.append([point[0], point[1], base_points[index][2]])
+    return points
+
+def deviation_point(coo1, coo2, move_parameter, is_last=False):
+    x1, y1, x2, y2 = coo1[0], coo1[1], coo2[0], coo2[1]  # 如果是最后一个点，取第二个 点做偏移
+    x_base, y_base = (x1, y1) if not is_last else (x2, y2)
+    if not ((x2 - x1) or (y2 - y1)):  # 分母为0
+        return [x_base, y_base, 0]
+    X = x_base + move_parameter * (y2 - y1) / sqrt(square(x2 - x1) + square((y2 - y1)))
+    Y = y_base + move_parameter * (x1 - x2) / sqrt(square(x2 - x1) + square((y2 - y1)))
+    return [X, Y, 0]
 
 
 class Road:

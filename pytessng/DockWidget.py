@@ -70,6 +70,12 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnSplitLink = QPushButton(self.centralWidget)
         self.btnSplitLink.setObjectName(u"btnSplitLink")
 
+        # 新建路段
+        self.textCreateLink = QLineEdit(self.centralWidget)
+        # self.textSplitLink.setObjectName(u"textSplitLink")
+        self.btnCreateLink = QPushButton(self.centralWidget)
+        self.btnCreateLink.setObjectName(u"btnCreateLink")
+
         # self.verticalLayout_0.addWidget(self.pd)
         self.verticalLayout_0.addWidget(xodr_label1)
         self.verticalLayout_0.addWidget(self.xodrStep)
@@ -80,6 +86,8 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.verticalLayout_4.addWidget(self.btnJoinLink)
         self.verticalLayout_4.addWidget(self.textSplitLink)
         self.verticalLayout_4.addWidget(self.btnSplitLink)
+        self.verticalLayout_4.addWidget(self.textCreateLink)
+        self.verticalLayout_4.addWidget(self.btnCreateLink)
         self.groupBox_4.setVisible(True)
 
         # 信息窗
@@ -178,6 +186,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnCreateUnity.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"导出unity文件", None))
         self.btnJoinLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段合并", None))
         self.btnSplitLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段断开", None))
+        self.btnCreateLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段创建", None))
         # self.btnStartSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u542f\u52a8\u4eff\u771f", None))
         # self.btnPauseSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u6682\u505c\u4eff\u771f", None))
         # self.btnStopSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u505c\u6b62\u4eff\u771f", None))
