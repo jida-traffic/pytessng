@@ -423,7 +423,7 @@ class AdjustNetwork:
         connector = self.netiface.findConnectorByLinkIds(road.link.id(), next_link_id)
         for value in self.connector_area_mapping.values():
             if connector.id() in value and len(value) > 1:
-                print(value)
+                print(f"匹配逻辑出现唯一性错误 {value}")
                 return
 
         next_link = self.netiface.findLink(next_link_id)
@@ -445,6 +445,7 @@ class AdjustNetwork:
         connector = self.netiface.findConnectorByLinkIds(last_link_id, road.link.id())
         for value in self.connector_area_mapping.values():
             if connector.id() in value and len(value) > 1:
+                print(f"匹配逻辑出现唯一性错误 {value}")
                 return
 
         last_link = self.netiface.findLink(last_link_id)

@@ -2,6 +2,7 @@
 import csv
 import json
 import os
+import traceback
 
 from pathlib import Path
 from DockWidget import *
@@ -12,7 +13,7 @@ from xml.dom import minidom
 from tessng2other.opendrive.node import Doc
 from tessng2other.opendrive.models import Junction, Connector, Road
 from opendrive2tessng.main import main as TessNetwork
-from pytessng.utils.functions import AdjustNetwork
+from pytessng.utils.functions import AdjustNetwork, line2surface
 
 
 class MySignals(QObject):
@@ -44,57 +45,75 @@ class TESS_API_EXAMPLE(QMainWindow):
         iface = tngIFace()
         netiface = iface.netInterface()
 
-        if self.ui.textCreateLink.text():
-            [float(i) for i in self.ui.textCreateLink.text().split(",")]
-            point_1_x, point_1_y, point_2_x, point_2_y, move, *lane_widths = [float(i) for i in self.ui.textCreateLink.text().split(",")]
-            center_points = line2surface([(point_1_x, point_1_y, 0), (point_2_x, point_2_y, 0)], move)
-            center_points = [QVector3D(m2p(point[0]), - m2p(point[1]), m2p(point[2])) for point in center_points]
-            netiface.createLink3DWithLaneWidth(center_points, lane_widths)
+        try:
+            if self.ui.textCreateLink.text():
+                [float(i) for i in self.ui.textCreateLink.text().split(",")]
+                point_1_x, point_1_y, point_2_x, point_2_y, move, *lane_widths = [float(i) for i in self.ui.textCreateLink.text().split(",")]
+                center_points = line2surface([(point_1_x, point_1_y, 0), (point_2_x, point_2_y, 0)], move)
+                center_points = [QVector3D(m2p(point[0]), - m2p(point[1]), m2p(point[2])) for point in center_points]
+                netiface.createLink3DWithLaneWidth(center_points, lane_widths)
+            else:
+                message = "请参照提示信息输入\n起点横坐标,起点纵坐标,终点横坐标,终点纵坐标,\n整体偏移距离(向右为正),一车道宽度,二车道宽度..."
+                QMessageBox.warning(None, "提示信息", message)
+        except:
+            error = str(traceback.format_exc())
+            print(error)
+            QMessageBox.warning(None, "提示信息", '参数错误,请检查')
 
     def splitLink(self, info):
         iface = tngIFace()
         netiface = iface.netInterface()
 
-        if self.ui.textSplitLink.text():
-            link_id, point_x, point_y = self.ui.textSplitLink.text().split(",")
-            link_id, point_x, point_y = int(link_id), float(point_x), float(point_y)
-            locations = netiface.locateOnCrid(QPointF(m2p(point_x), -m2p(point_y)), 9)
+        try:
+            if self.ui.textSplitLink.text():
+                split_infos = self.ui.textSplitLink.text().split(";")
+                split_distances = []
+                for split_info in split_infos:
+                    link_id, point_x, point_y = split_info.split(",")
+                    link_id, point_x, point_y = int(link_id), float(point_x), float(point_y)
+                    locations = netiface.locateOnCrid(QPointF(m2p(point_x), -m2p(point_y)), 9)
 
-            distance = None
-            for location in locations:
-                # 因为C++和python调用问题，必须先把lane实例化赋值给
-                if location.pLaneObject.isLane():
-                    lane = location.pLaneObject.castToLane()
-                    print(lane.link().id())
-                    if lane.link().id() == link_id:
-                        distance = location.distToStart
-                        break
-            if distance:
+                    for location in locations:
+                        # 因为C++和python调用问题，必须先把lane实例化赋值给
+                        if location.pLaneObject.isLane():
+                            lane = location.pLaneObject.castToLane()
+                            if lane.link().id() == link_id:
+                                distance = location.distToStart
+                                print("寻找到最近点", link_id, (point_x, point_y), location.point)
+                                split_distances.append([link_id, distance])
+                                break
                 adjust_obj = AdjustNetwork(netiface)
-                message = adjust_obj.split_link([[link_id, distance]])
+                message = adjust_obj.split_link(split_distances)
                 if message and isinstance(message, str):
                     QMessageBox.warning(None, "提示信息", message)
-            return
+            else:
+                message = "请参照提示信息输入\n路段ID,断点横坐标,断点纵坐标;\n路段ID,断点横坐标,断点纵坐标...\n每组打断信息以< ; >分隔,内部以< , >分隔"
+                QMessageBox.warning(None, "提示信息", message)
+                return
+        except:
+            error = str(traceback.format_exc())
+            print(error)
+            QMessageBox.warning(None, "提示信息", '参数错误,请检查')
 
-        iface = tngIFace()
-        netiface = iface.netInterface()
-
-        if not netiface.linkCount():
-            return
-
-        xodrSuffix = "OpenDrive Files (*.csv)"
-        dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
-        file_path, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, xodrSuffix)
-        if not file_path:
-            return
-        adjust_obj = AdjustNetwork(netiface)
-
-        reader = csv.reader(open(file_path, 'r', encoding='utf-8'))
-        next(reader)
-        message = adjust_obj.split_link(reader)
-        if message and isinstance(message, str):
-            QMessageBox.warning(None, "提示信息", message)
-        return
+        # iface = tngIFace()
+        # netiface = iface.netInterface()
+        #
+        # if not netiface.linkCount():
+        #     return
+        #
+        # xodrSuffix = "OpenDrive Files (*.csv)"
+        # dbDir = os.fspath(Path(__file__).resolve().parent / "Data")
+        # file_path, filtr = QFileDialog.getOpenFileName(self, "打开文件", dbDir, xodrSuffix)
+        # if not file_path:
+        #     return
+        # adjust_obj = AdjustNetwork(netiface)
+        #
+        # reader = csv.reader(open(file_path, 'r', encoding='utf-8'))
+        # next(reader)
+        # message = adjust_obj.split_link(reader)
+        # if message and isinstance(message, str):
+        #     QMessageBox.warning(None, "提示信息", message)
+        # return
 
     def joinLink(self, info):
         iface = tngIFace()

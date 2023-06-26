@@ -66,12 +66,14 @@ class Ui_TESS_API_EXAMPLEClass(object):
         # 路段断开
         # 允许用户输入路段ID以及点位坐标，如若为空，拉起文件选择框
         self.textSplitLink = QLineEdit(self.centralWidget)
+        self.textSplitLink.setPlaceholderText("link_id,x,y;link_id,x,y...")
         # self.textSplitLink.setObjectName(u"textSplitLink")
         self.btnSplitLink = QPushButton(self.centralWidget)
         self.btnSplitLink.setObjectName(u"btnSplitLink")
 
         # 新建路段
         self.textCreateLink = QLineEdit(self.centralWidget)
+        self.textCreateLink.setPlaceholderText("x1,y1,x2,y2,move,w1,w2...")
         # self.textSplitLink.setObjectName(u"textSplitLink")
         self.btnCreateLink = QPushButton(self.centralWidget)
         self.btnCreateLink.setObjectName(u"btnCreateLink")
@@ -184,7 +186,7 @@ class Ui_TESS_API_EXAMPLEClass(object):
         self.btnOpenNet.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u9009\u62e9\u6587\u4ef6", None))
         self.btnCreateXodr.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"导出opendrive文件", None))
         self.btnCreateUnity.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"导出unity文件", None))
-        self.btnJoinLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段合并", None))
+        self.btnJoinLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段合并\n主动合并路网内的全部路段", None))
         self.btnSplitLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段断开", None))
         self.btnCreateLink.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"路段创建", None))
         # self.btnStartSimu.setText(QCoreApplication.translate("TESS_API_EXAMPLEClass", u"\u542f\u52a8\u4eff\u771f", None))
