@@ -3,6 +3,7 @@ import Tessng
 
 from opendrive2tessng.utils.config import *
 from typing import Dict, List
+import numpy as np
 
 
 def get_section_childs(section_info: Dict, lengths: List, direction: str) -> List[Dict]:
@@ -160,3 +161,86 @@ def connect_childs(links: Tessng.ILink, connector_mapping: Dict) -> None:
             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['lanesWithPoints3'] += [None for _ in
                                                                                           connect_lanes]
             connector_mapping[f"{from_link.id()}-{to_link.id()}"]['infos'] += []
+
+
+# 计算两向量间的夹角
+def cal_angle_of_vector(v0, v1, is_use_deg=True):
+    dot_product = np.dot(v0, v1)
+    v0_len = np.linalg.norm(v0)
+    v1_len = np.linalg.norm(v1)
+    try:
+        angle_rad = np.arccos(dot_product / (v0_len * v1_len))
+    except ZeroDivisionError as error:
+        return None
+
+    if is_use_deg:
+        return np.rad2deg(angle_rad)
+    return angle_rad
+
+
+# 根据前后两点坐标绘制向量
+def get_vector(start_point, end_point):
+    # return np.array([end_point[index] - start_point[index] for index in range(3)])
+    return np.array(end_point) - np.array(start_point)
+
+
+# 根据角度限制整合中心点，减少绘制路网时的点数
+def get_new_point_indexs(center_points, angle):
+    new_point_indexs = [0, 1]  # 前两个点是基础
+    for index, point in enumerate(center_points[2:-1]):
+        real_index = index + 2  # 在 center_points 中的真实索引
+
+        point_0 = center_points[new_point_indexs[-2]]
+        point_1 = center_points[new_point_indexs[-1]]
+        point_2 = point
+
+        vector_1 = get_vector(point_0, point_1)
+        vector_2 = get_vector(point_0, point_2)
+
+        included_angle = cal_angle_of_vector(vector_1, vector_2)
+        point_distance = np.sqrt(np.sum((np.array(point_2) - np.array(point_1)) ** 2))
+
+        # 如果两向量夹角变化不大，抹除观测点(不能用连续的两个点比较,即 01 对比 12，容易对缓慢变化的路段判断错误)
+        # print(included_angle, angle, point_distance >= max_length, included_angle > 0)
+        # print(point_0, point_1, point_2, vector_1, vector_2)
+        if included_angle is None or included_angle >= angle:
+            new_point_indexs.append(real_index)
+        # 如果观测点距离上一点过远，且存在角度差异，也不会抹除，不加这个可能会把微小的角度误差放大到明显的地步
+        elif point_distance >= max_length and included_angle > 0:
+        # elif point_distance >= max_length:  # 存在微小角度偏差的路段 可能会漫延很长
+            new_point_indexs.append(real_index)
+        else:
+            # print('不添加')
+            pass
+    # 最后一个点需添加
+    if len(center_points) - 1 > new_point_indexs[-1]:
+        new_point_indexs.append(len(center_points) - 1)
+
+    # TODO 尝试缩减第二个点
+    def is_remove_index_1(center_points, new_point_indexs):
+        point_0 = center_points[new_point_indexs[0]]
+        point_1 = center_points[new_point_indexs[1]]
+        point_2 = center_points[new_point_indexs[2]]
+
+        vector_1 = get_vector(point_0, point_1)
+        vector_2 = get_vector(point_0, point_2)
+
+        included_angle = cal_angle_of_vector(vector_1, vector_2)
+
+        # 距离取较小值
+        point_distance = np.sqrt(np.sum((np.array(point_1) - np.array(point_0)) ** 2))
+
+        # 如果两向量夹角变化不大，抹除观测点(不能用连续的两个点比较,即 01 对比 12，容易对缓慢变化的路段判断错误)
+        if included_angle is None or included_angle >= angle:
+            return False
+        # 如果观测点距离上一点过远，且存在角度差异，也不会抹除，不加这个可能会把微小的角度误差放大到明显的地步
+        elif point_distance >= max_length and included_angle > 0:
+            # elif point_distance >= max_length:  # 存在微小角度偏差的路段 可能会蔓延很长
+            return False
+        else:
+            return True
+
+    if is_remove_index_1(center_points, new_point_indexs):
+        del new_point_indexs[1]
+    print("point 缩减", len(new_point_indexs), len(center_points))
+    return new_point_indexs

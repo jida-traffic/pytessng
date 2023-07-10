@@ -20,6 +20,10 @@ LANE_TYPE_MAPPING = {
     # 'curb': '',
 }
 
+# 当前后几个点的向量夹角小于 default_angle 且点距小于 max_length(除非夹角为0 ) 时，抹除过渡点
+default_angle = 3
+max_length = 50
+
 # 连续次数后可视为正常车道，或者连续次数后可视为连接段,最小值为2
 point_require = 2
 POINT_REQUIRE = max(2, point_require)

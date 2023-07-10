@@ -7,9 +7,9 @@ from Tessng import *
 from PySide2.QtGui import *
 from typing import List, Dict
 from opendrive2tessng import send_signal
-from opendrive2tessng.utils.config import LANE_TYPE_MAPPING, MIN_CONNECTOR_LENGTH, is_center
+from opendrive2tessng.utils.config import LANE_TYPE_MAPPING, MIN_CONNECTOR_LENGTH, is_center, default_angle
 from opendrive2tessng.utils.convert_utils import convert_opendrive, convert_roads_info, convert_lanes_info
-from opendrive2tessng.utils.functions import get_inter, get_section_childs, connect_childs
+from opendrive2tessng.utils.functions import get_inter, get_section_childs, connect_childs, get_new_point_indexs
 from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.opendrive import OpenDrive
 from opendrive2tessng.opendrive2lanelet.opendriveparser.elements.roadLanes import Lane
 
@@ -296,22 +296,46 @@ class Network:
                         # 步长过大，可能会导致在分段时 child 只包含了一个点
                         start_index, end_index = child['start'], child['end'] + 1
                         land_ids = sorted(child['lanes'], reverse=reverse)  # 列表内多点的的数据是一样的，取第一个即可
-                        lCenterLinePoint = self.get_coo_list(
-                            [point["position"] for point in points][start_index:end_index])
-                        lanesWithPoints = [
-                            {
-                                'left': self.get_coo_list(
-                                    road_info['sections'][section_id]["lanes"][lane_id]['left_vertices'][
-                                    start_index:end_index]),
-                                'center': self.get_coo_list(
-                                    road_info['sections'][section_id]["lanes"][lane_id]['center_vertices'][
-                                    start_index:end_index]),
-                                'right': self.get_coo_list(
-                                    road_info['sections'][section_id]["lanes"][lane_id]['right_vertices'][
-                                    start_index:end_index]),
-                            }
-                            for lane_id in land_ids
-                        ]
+                        # lCenterLinePoint = self.get_coo_list(
+                        #     [point["position"] for point in points][start_index:end_index])
+
+                        # lanesWithPoints = [
+                        #     {
+                        #         'left': self.get_coo_list(
+                        #             road_info['sections'][section_id]["lanes"][lane_id]['left_vertices'][
+                        #             start_index:end_index]),
+                        #         'center': self.get_coo_list(
+                        #             road_info['sections'][section_id]["lanes"][lane_id]['center_vertices'][
+                        #             start_index:end_index]),
+                        #         'right': self.get_coo_list(
+                        #             road_info['sections'][section_id]["lanes"][lane_id]['right_vertices'][
+                        #             start_index:end_index]),
+                        #     }
+                        #     for lane_id in land_ids
+                        # ]
+                        # TODO 当前后两点的空间向量夹角小于某值时，可以将此点忽略
+                        center_points = [point["position"] for point in points][start_index:end_index]
+                        new_point_indexs = get_new_point_indexs(center_points, default_angle)
+                        new_center_points = [center_points[index] for index in new_point_indexs]
+                        # print(len(center_points), len(new_point_indexs), new_point_indexs)
+                        lCenterLinePoint = self.get_coo_list(new_center_points)
+                        lanesWithPoints = []
+                        for lane_id in land_ids:
+                            lane_left_points = road_info['sections'][section_id]["lanes"][lane_id]['left_vertices'][start_index:end_index]
+                            lane_center_points = road_info['sections'][section_id]["lanes"][lane_id]['center_vertices'][start_index:end_index]
+                            lane_right_points = road_info['sections'][section_id]["lanes"][lane_id]['right_vertices'][start_index:end_index]
+
+                            new_lane_left_points = [lane_left_points[index] for index in new_point_indexs]
+                            new_lane_center_points = [lane_center_points[index] for index in new_point_indexs]
+                            new_lane_right_points = [lane_right_points[index] for index in new_point_indexs]
+                            lanesWithPoints.append(
+                                {
+                                    'left': self.get_coo_list(new_lane_left_points),
+                                    'center': self.get_coo_list(new_lane_center_points),
+                                    'right': self.get_coo_list(new_lane_right_points),
+                                }
+                            )
+
                         lLaneType = [LANE_TYPE_MAPPING[section_info['lanes'][lane_id]['type']] for lane_id in land_ids]
                         lAttr = [{} for _ in land_ids]
                         link_name = f"{road_id}_{section_id}_{index}_{direction}_{self.file_name}"
